@@ -1,0 +1,60 @@
+name: "Deploy to Cloudflare"
+description: "Deploy to Cloudflare Pages or Workers with preview support and GitHub Deployments"
+author: "Foxglove"
+
+branding:
+  icon: "upload-cloud"
+  color: "orange"
+
+inputs:
+  apiToken:
+    description: "Cloudflare API token"
+    required: true
+  accountId:
+    description: "Cloudflare account ID"
+    required: false
+  directory:
+    description: >
+      Directory of static assets to deploy. When set, the action deploys to
+      Cloudflare Pages. When omitted, it deploys as a Cloudflare Worker.
+    required: false
+  projectName:
+    description: >
+      Cloudflare Pages project name (required for Pages deployments).
+      Also used as the GitHub Deployment environment label.
+    required: false
+  environment:
+    description: "Wrangler environment name (--env flag)"
+    required: false
+  workingDirectory:
+    description: "Directory to run wrangler commands from"
+    required: false
+  wranglerVersion:
+    description: "Wrangler version to install (default: latest)"
+    required: false
+  gitHubToken:
+    description: >
+      GitHub token for creating Deployment statuses. When provided, a GitHub
+      Deployment is created with the deployment URL so it appears in the
+      repo's Deployments tab and on PRs.
+    required: false
+  deployAttempts:
+    description: "Number of deploy attempts before failing (default: 1)"
+    required: false
+    default: "1"
+  productionBranch:
+    description: "Branch name that triggers a production deploy (default: main)"
+    required: false
+    default: "main"
+
+outputs:
+  deployment-url:
+    description: "URL of the Cloudflare deployment"
+  command-output:
+    description: "Standard output from the wrangler command"
+  command-stderr:
+    description: "Standard error from the wrangler command"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

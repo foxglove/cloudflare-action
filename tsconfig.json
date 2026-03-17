@@ -1,3 +1,7 @@
 {
-  "extends": "@foxglove/typescript/node.json"
+  "extends": "@foxglove/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "verbatimModuleSyntax": false
+  }
 }
