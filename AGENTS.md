@@ -24,7 +24,7 @@ LICENSE             MIT license
 
 - **Explicit mode selection.** Users set `type: pages` or `type: workers`. No magic detection.
 - **Single file.** All logic lives in `src/index.ts`. The action is small enough that splitting into multiple files adds complexity without benefit.
-- **Global wrangler install.** Wrangler is installed globally via `yarn global add wrangler@<version>` so it's available for retries without re-downloading.
+- **Global wrangler install.** Wrangler is installed globally via `npm install -g wrangler@<version>` so it's available for retries without re-downloading. We use npm (not yarn) here because the action runs on GitHub Actions runners where npm is always available but yarn version is unpredictable.
 - **`dist/` is checked in.** GitHub Actions requires the compiled JS to be in the repo. Never add `dist/` to `.gitignore`.
 
 ### Deploy strategies
@@ -70,17 +70,16 @@ Then run `node dist/index.js` directly, passing inputs via `INPUT_` env vars (e.
 
 ## Making changes
 
-1. Edit `src/index.ts`.
-2. Run `yarn build` to regenerate `dist/index.js`.
+1. Edit source files.
+2. **Always run `yarn fmt`, `yarn typecheck`, and `yarn build` after editing files.**
 3. **Always commit both `src/` and `dist/` changes together.** The `dist/` bundle is what GitHub Actions actually executes.
-4. Run `yarn typecheck` to verify types.
 
 ## Adding new inputs
 
 1. Add the input to `action.yml` under `inputs:`.
 2. Read it in `src/index.ts` via `core.getInput("inputName")`.
 3. Update the README's Inputs table.
-4. Rebuild with `yarn build`.
+4. Run `yarn fmt`, `yarn typecheck`, and `yarn build`.
 
 ## Dependencies
 

@@ -58,7 +58,7 @@ async function sleep(ms: number): Promise<void> {
 async function installWrangler(version: string): Promise<void> {
   const pkg = version ? `wrangler@${version}` : "wrangler@latest";
   core.info(`Installing ${pkg}...`);
-  await exec.exec("yarn", ["global", "add", pkg]);
+  await exec.exec("npm", ["install", "--global", pkg]);
 }
 
 async function runWrangler(
@@ -146,9 +146,7 @@ async function deployWorkers(config: Config): Promise<DeployResult> {
 }
 
 async function deploy(config: Config): Promise<DeployResult> {
-  return config.mode === "pages"
-    ? deployPages(config)
-    : deployWorkers(config);
+  return config.mode === "pages" ? deployPages(config) : deployWorkers(config);
 }
 
 async function deployWithRetry(config: Config): Promise<DeployResult> {
@@ -359,13 +357,10 @@ async function run(): Promise<void> {
   }
   core.info(`Attempts: ${deployAttempts}\n`);
 
-  await core.group("Install Wrangler", () =>
-    installWrangler(wranglerVersion),
-  );
+  await core.group("Install Wrangler", () => installWrangler(wranglerVersion));
 
-  const result = await core.group(
-    `Deploy to Cloudflare ${modeLabel}`,
-    () => deployWithRetry(config),
+  const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
+    deployWithRetry(config),
   );
 
   core.setOutput("deployment-url", result.url ?? "");

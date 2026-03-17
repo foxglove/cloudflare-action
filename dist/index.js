@@ -23559,7 +23559,7 @@ async function sleep(ms) {
 async function installWrangler(version) {
   const pkg = version ? `wrangler@${version}` : "wrangler@latest";
   info(`Installing ${pkg}...`);
-  await exec("yarn", ["global", "add", pkg]);
+  await exec("npm", ["install", "--global", pkg]);
 }
 async function runWrangler(args, config) {
   let stdout = "";
@@ -23786,10 +23786,7 @@ async function run() {
   }
   info(`Attempts: ${deployAttempts}
 `);
-  await group(
-    "Install Wrangler",
-    () => installWrangler(wranglerVersion)
-  );
+  await group("Install Wrangler", () => installWrangler(wranglerVersion));
   const result = await group(
     `Deploy to Cloudflare ${modeLabel}`,
     () => deployWithRetry(config)
