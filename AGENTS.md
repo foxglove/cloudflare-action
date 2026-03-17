@@ -14,11 +14,15 @@ src/index.ts        All action logic — deploy, retry, GitHub Deployments
 dist/index.js       Compiled bundle (checked into git, required by GitHub Actions)
 package.json        Dependencies and build scripts
 tsconfig.json       TypeScript configuration
+.yarnrc.yml         Yarn configuration
+yarn.lock           Yarn lockfile
+.gitignore          Git ignore rules
+LICENSE             MIT license
 ```
 
 ### Key design decisions
 
-- **Auto-detection over configuration.** Pages vs Workers mode is determined by whether the `directory` input is set. No mode flag.
+- **Explicit mode selection.** Users set `type: pages` or `type: workers`. No magic detection.
 - **Single file.** All logic lives in `src/index.ts`. The action is small enough that splitting into multiple files adds complexity without benefit.
 - **Global wrangler install.** Wrangler is installed globally via `yarn global add wrangler@<version>` so it's available for retries without re-downloading.
 - **`dist/` is checked in.** GitHub Actions requires the compiled JS to be in the repo. Never add `dist/` to `.gitignore`.

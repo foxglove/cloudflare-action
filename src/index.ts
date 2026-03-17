@@ -291,6 +291,12 @@ async function run(): Promise<void> {
   const apiToken = core.getInput("apiToken", { required: true });
   core.setSecret(apiToken);
 
+  const typeInput = core.getInput("type", { required: true });
+  if (typeInput !== "pages" && typeInput !== "workers") {
+    throw new Error(`type must be "pages" or "workers", got "${typeInput}"`);
+  }
+  const mode: DeployMode = typeInput;
+
   const accountId =
     core.getInput("accountId") || process.env.CLOUDFLARE_ACCOUNT_ID || "";
   const directory = core.getInput("directory");
@@ -302,12 +308,11 @@ async function run(): Promise<void> {
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
 
-  const mode: DeployMode = directory ? "pages" : "workers";
-
   if (mode === "pages" && !projectName) {
-    throw new Error(
-      "projectName is required for Pages deployments (when directory is set)",
-    );
+    throw new Error("projectName is required for Pages deployments");
+  }
+  if (mode === "pages" && !directory) {
+    throw new Error("directory is required for Pages deployments");
   }
 
   const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;

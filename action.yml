@@ -7,6 +7,9 @@ branding:
   color: "orange"
 
 inputs:
+  type:
+    description: "Deploy type: 'pages' for Cloudflare Pages or 'workers' for Cloudflare Workers"
+    required: true
   apiToken:
     description: "Cloudflare API token"
     required: true
@@ -14,13 +17,11 @@ inputs:
     description: "Cloudflare account ID"
     required: false
   directory:
-    description: >
-      Directory of static assets to deploy. When set, the action deploys to
-      Cloudflare Pages. When omitted, it deploys as a Cloudflare Worker.
+    description: "Directory of static assets to deploy (required for Pages)"
     required: false
   projectName:
     description: >
-      Cloudflare Pages project name (required for Pages deployments).
+      Cloudflare Pages project name (required for Pages).
       Also used as the GitHub Deployment environment label.
     required: false
   environment:

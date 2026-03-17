@@ -10,7 +10,7 @@ A GitHub Action for deploying to **Cloudflare Pages** and **Cloudflare Workers**
 - **No GitHub Deployments integration.** PR authors and reviewers cannot see deployment links in the GitHub UI unless you wire it up yourself. This action creates GitHub Deployments with environment URLs automatically.
 - **No deploy retries.** Cloudflare deploys occasionally fail transiently. This action supports configurable retry attempts with backoff.
 - **Stale deployment cleanup.** Old GitHub Deployments for the same environment and ref are automatically marked inactive and deleted so the Deployments tab stays clean.
-- **Auto-detection of Pages vs Workers.** Provide a `directory` input and the action deploys to Pages. Omit it and the action deploys a Worker. No mode flag required.
+- **Supports both Pages and Workers.** Set `type: pages` or `type: workers` — one action for both deployment models.
 
 ## Quick start
 
@@ -39,6 +39,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: foxglove/cloudflare-action@v1
         with:
+          type: pages
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: my-pages-project
@@ -70,6 +71,7 @@ jobs:
       - name: Deploy Worker
         uses: foxglove/cloudflare-action@v1
         with:
+          type: workers
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -79,12 +81,12 @@ On `main` this runs `wrangler deploy` for a **production** deployment. On any ot
 
 ## How it works
 
-### Auto-detection
+### Deploy modes
 
-| `directory` input | Mode      | Production command               | Preview command                                         |
-| ------------------ | --------- | -------------------------------- | ------------------------------------------------------- |
-| **set**            | Pages     | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`          |
-| **not set**        | Workers   | `wrangler deploy`                | `wrangler versions upload --preview-alias <branch>` |
+| `type`    | Production command                    | Preview command                                     |
+| --------- | ------------------------------------- | --------------------------------------------------- |
+| `pages`   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`           |
+| `workers` | `wrangler deploy`                     | `wrangler versions upload --preview-alias <branch>` |
 
 The branch is read from `GITHUB_HEAD_REF` (pull requests) or `GITHUB_REF_NAME` (pushes). A deploy is considered **production** when the branch matches `productionBranch` (default: `main`).
 
@@ -104,26 +106,27 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 
 ## Inputs
 
-| Input              | Required | Default  | Description                                                                                                   |
-| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| `apiToken`         | **yes**  |          | Cloudflare API token                                                                                          |
-| `accountId`        | no       |          | Cloudflare account ID (can also be set via `CLOUDFLARE_ACCOUNT_ID` env var)                                   |
-| `directory`        | no       |          | Directory of static assets to deploy. **Setting this enables Pages mode.**                                    |
-| `projectName`      | no       |          | Cloudflare Pages project name. Required when `directory` is set. Also used as the GitHub Deployment label.    |
-| `environment`      | no       |          | Wrangler environment name (`--env` flag)                                                                      |
-| `workingDirectory` | no       |          | Directory to run wrangler commands from                                                                       |
-| `wranglerVersion`  | no       | latest   | Wrangler version to install                                                                                   |
-| `gitHubToken`      | no       |          | GitHub token for creating Deployment statuses                                                                 |
-| `deployAttempts`   | no       | `1`      | Number of deploy attempts before failing                                                                      |
-| `productionBranch` | no       | `main`   | Branch name that triggers a production deploy                                                                 |
+| Input              | Required | Default | Description                                                                                   |
+| ------------------ | -------- | ------- | --------------------------------------------------------------------------------------------- |
+| `type`             | **yes**  |         | `pages` or `workers`                                                                          |
+| `apiToken`         | **yes**  |         | Cloudflare API token                                                                          |
+| `accountId`        | no       |         | Cloudflare account ID (can also be set via `CLOUDFLARE_ACCOUNT_ID` env var)                   |
+| `directory`        | no       |         | Directory of static assets to deploy (required for Pages)                                     |
+| `projectName`      | no       |         | Cloudflare Pages project name (required for Pages). Also used as the GitHub Deployment label. |
+| `environment`      | no       |         | Wrangler environment name (`--env` flag)                                                      |
+| `workingDirectory` | no       |         | Directory to run wrangler commands from                                                       |
+| `wranglerVersion`  | no       | latest  | Wrangler version to install                                                                   |
+| `gitHubToken`      | no       |         | GitHub token for creating Deployment statuses                                                 |
+| `deployAttempts`   | no       | `1`     | Number of deploy attempts before failing                                                      |
+| `productionBranch` | no       | `main`  | Branch name that triggers a production deploy                                                 |
 
 ## Outputs
 
-| Output             | Description                              |
-| ------------------ | ---------------------------------------- |
-| `deployment-url`   | URL of the Cloudflare deployment         |
-| `command-output`   | Standard output from the wrangler command|
-| `command-stderr`   | Standard error from the wrangler command |
+| Output           | Description                               |
+| ---------------- | ----------------------------------------- |
+| `deployment-url` | URL of the Cloudflare deployment          |
+| `command-output` | Standard output from the wrangler command |
+| `command-stderr` | Standard error from the wrangler command  |
 
 ## Examples
 
@@ -132,6 +135,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 ```yaml
 - uses: foxglove/cloudflare-action@v1
   with:
+    type: pages
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     projectName: my-project
@@ -146,6 +150,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
   id: deploy
   uses: foxglove/cloudflare-action@v1
   with:
+    type: pages
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     projectName: my-project
@@ -160,6 +165,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 ```yaml
 - uses: foxglove/cloudflare-action@v1
   with:
+    type: workers
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     wranglerVersion: "3.99.0"
 ```
@@ -169,6 +175,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 ```yaml
 - uses: foxglove/cloudflare-action@v1
   with:
+    type: workers
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     environment: staging
@@ -179,6 +186,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 ```yaml
 - uses: foxglove/cloudflare-action@v1
   with:
+    type: pages
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     projectName: my-project
