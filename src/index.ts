@@ -1,5 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as fs from "fs";
+import * as path from "path";
 import { Octokit } from "@octokit/rest";
 
 type DeployMode = "pages" | "workers";
@@ -49,6 +51,35 @@ function extractDeploymentUrl(output: string): string | undefined {
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseJsonc(raw: string): Record<string, unknown> {
+  const stripped = raw.replace(
+    /"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm,
+    (match) => (match.startsWith("/") ? "" : match),
+  );
+  const parsed: unknown = JSON.parse(stripped);
+  if (
+    parsed == undefined ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed)
+  ) {
+    return {};
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function readWranglerName(workingDirectory: string): string | undefined {
+  const dir = workingDirectory || ".";
+  for (const filename of ["wrangler.jsonc", "wrangler.json"]) {
+    const filepath = path.join(dir, filename);
+    if (!fs.existsSync(filepath)) continue;
+    const parsed = parseJsonc(fs.readFileSync(filepath, "utf-8"));
+    if (typeof parsed.name === "string" && parsed.name) {
+      return parsed.name;
+    }
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -374,7 +405,8 @@ async function run(): Promise<void> {
   }
 
   if (gitHubToken && result.url) {
-    const label = projectName || "workers";
+    const label =
+      projectName || readWranglerName(config.workingDirectory) || "workers";
     const environmentLabel = `${label} (${deployType})`;
 
     await core.group("Create GitHub Deployment", () =>
