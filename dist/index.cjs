@@ -19932,8 +19932,8 @@ function group(name, fn) {
 }
 
 // src/index.ts
-var fs3 = __toESM(require("fs"));
-var path4 = __toESM(require("path"));
+var fs3 = __toESM(require("fs"), 1);
+var path4 = __toESM(require("path"), 1);
 
 // node_modules/universal-user-agent/index.js
 function getUserAgent() {
@@ -23548,17 +23548,13 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
   }
 );
 
-// src/index.ts
-var RETRY_DELAY_MS = 1e4;
+// src/utils.ts
 function sanitizeBranchName(branch) {
   return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
 }
 function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
   return urls?.[urls.length - 1];
-}
-async function sleep(ms) {
-  return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
 function parseJsonc(raw) {
   const stripped = raw.replace(
@@ -23570,6 +23566,12 @@ function parseJsonc(raw) {
     return {};
   }
   return parsed;
+}
+
+// src/index.ts
+var RETRY_DELAY_MS = 1e4;
+async function sleep(ms) {
+  return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
 function readWranglerName(workingDirectory) {
   const dir = workingDirectory || ".";
