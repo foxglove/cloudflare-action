@@ -11,7 +11,8 @@
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "test": "node --test src/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ci": "yarn fmt && yarn typecheck && yarn build && yarn test"
   },
   "dependencies": {
     "@actions/core": "3.0.0",

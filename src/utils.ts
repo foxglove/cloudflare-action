@@ -14,10 +14,11 @@ export function extractDeploymentUrl(output: string): string | undefined {
 }
 
 export function parseJsonc(raw: string): Record<string, unknown> {
-  const stripped = raw.replace(
-    /"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm,
-    (match) => (match.startsWith("/") ? "" : match),
-  );
+  const stripped = raw
+    .replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) =>
+      match.startsWith("/") ? "" : match,
+    )
+    .replace(/,\s*([\]}])/g, "$1");
   const parsed: unknown = JSON.parse(stripped);
   if (
     parsed == undefined ||
