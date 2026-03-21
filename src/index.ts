@@ -362,6 +362,9 @@ async function run(): Promise<void> {
   }
   core.info(`Attempts: ${deployAttempts}\n`);
 
+  const label =
+    projectName || readWranglerName(config.workingDirectory) || "workers";
+
   await core.group("Install Wrangler", () => installWrangler(wranglerVersion));
 
   const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
@@ -379,8 +382,6 @@ async function run(): Promise<void> {
   }
 
   if (gitHubToken && result.url) {
-    const label =
-      projectName || readWranglerName(config.workingDirectory) || "workers";
     const environmentLabel = `${label} (${deployType})`;
 
     await core.group("Create GitHub Deployment", () =>

@@ -133,6 +133,45 @@ describe("parseJsonc", () => {
     assert.deepStrictEqual(parseJsonc(input), { a: 1, b: 2 });
   });
 
+  it("strips trailing commas", () => {
+    const input = `{
+      "a": 1,
+      "b": [1, 2, 3,],
+    }`;
+    assert.deepStrictEqual(parseJsonc(input), { a: 1, b: [1, 2, 3] });
+  });
+
+  it("strips trailing commas with comments", () => {
+    const input = `{
+      "name": "web",
+      "assets": {
+        "directory": "./dist", // trailing comma after value
+      }, // trailing comma after object
+    }`;
+    assert.deepStrictEqual(parseJsonc(input), {
+      name: "web",
+      assets: { directory: "./dist" },
+    });
+  });
+
+  it("parses a real wrangler.jsonc with trailing commas and comments", () => {
+    const input = `{
+      // Wrangler config
+      "$schema": "./node_modules/wrangler/config-schema.json",
+      "name": "web",
+      "compatibility_date": "2026-01-01",
+      "assets": {
+        "directory": "./dist", /* output dir */
+      },
+    }`;
+    assert.deepStrictEqual(parseJsonc(input), {
+      $schema: "./node_modules/wrangler/config-schema.json",
+      name: "web",
+      compatibility_date: "2026-01-01",
+      assets: { directory: "./dist" },
+    });
+  });
+
   it("returns empty object for non-object JSON values", () => {
     assert.deepStrictEqual(parseJsonc("[]"), {});
     assert.deepStrictEqual(parseJsonc('"hello"'), {});

@@ -1,7 +1,6 @@
 {
   "extends": "@foxglove/tsconfig/node.json",
   "compilerOptions": {
-    "noEmit": true,
-    "verbatimModuleSyntax": false
+    "noEmit": true
   }
 }

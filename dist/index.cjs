@@ -23560,7 +23560,7 @@ function parseJsonc(raw) {
   const stripped = raw.replace(
     /"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm,
     (match) => match.startsWith("/") ? "" : match
-  );
+  ).replace(/,\s*([\]}])/g, "$1");
   const parsed = JSON.parse(stripped);
   if (parsed == void 0 || typeof parsed !== "object" || Array.isArray(parsed)) {
     return {};
@@ -23815,6 +23815,7 @@ async function run() {
   }
   info(`Attempts: ${deployAttempts}
 `);
+  const label = projectName || readWranglerName(config.workingDirectory) || "workers";
   await group("Install Wrangler", () => installWrangler(wranglerVersion));
   const result = await group(
     `Deploy to Cloudflare ${modeLabel}`,
@@ -23830,7 +23831,6 @@ Deployment URL: ${result.url}`);
     warning("Could not extract deployment URL from wrangler output");
   }
   if (gitHubToken && result.url) {
-    const label = projectName || readWranglerName(config.workingDirectory) || "workers";
     const environmentLabel = `${label} (${deployType})`;
     await group(
       "Create GitHub Deployment",
