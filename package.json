@@ -3,12 +3,14 @@
   "private": true,
   "license": "MIT",
   "description": "Deploy to Cloudflare Pages & Workers",
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.cjs",
   "packageManager": "yarn@4.13.0",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs",
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
+    "test": "node --test src/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
