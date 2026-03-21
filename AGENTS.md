@@ -6,24 +6,26 @@ This is a GitHub Action that deploys to Cloudflare Pages and Cloudflare Workers.
 
 ## Architecture
 
-This is a Node.js GitHub Action (runs via `node20`). The entire action is a single TypeScript file compiled and bundled into `dist/index.js` using `esbuild`.
+This is a Node.js GitHub Action (runs via `node20`). Entry logic lives in `src/index.ts`; shared helpers (branch sanitization, URL extraction, minimal JSONC parsing for `wrangler.jsonc`) live in `src/utils.ts`. Everything is bundled into a single CommonJS file with esbuild.
 
 ```
-action.yml          GitHub Action definition (inputs, outputs, entrypoint)
-src/index.ts        All action logic — deploy, retry, GitHub Deployments
-dist/index.js       Compiled bundle (checked into git, required by GitHub Actions)
-package.json        Dependencies and build scripts
-tsconfig.json       TypeScript configuration
-.yarnrc.yml         Yarn configuration
-yarn.lock           Yarn lockfile
-.gitignore          Git ignore rules
-LICENSE             MIT license
+action.yml           GitHub Action definition (inputs, outputs, entrypoint)
+src/index.ts         Main action — deploy, retry, GitHub Deployments
+src/utils.ts         Pure helpers imported by index
+src/*.test.ts        Node built-in tests (`yarn test`)
+dist/index.cjs       Compiled bundle (checked into git, required by GitHub Actions)
+package.json         Dependencies and build scripts
+tsconfig.json        TypeScript configuration
+.yarnrc.yml          Yarn configuration
+yarn.lock            Yarn lockfile
+.gitignore           Git ignore rules
+LICENSE              MIT license
 ```
 
 ### Key design decisions
 
 - **Explicit mode selection.** Users set `type: pages` or `type: workers`. No magic detection.
-- **Single file.** All logic lives in `src/index.ts`. The action is small enough that splitting into multiple files adds complexity without benefit.
+- **Small surface area.** Core flow stays in `src/index.ts`; keep `utils.ts` limited to testable, side-effect-free helpers.
 - **Global wrangler install.** Wrangler is installed globally via `npm install -g wrangler@<version>` so it's available for retries without re-downloading. We use npm (not yarn) here because the action runs on GitHub Actions runners where npm is always available but yarn version is unpredictable.
 - **`dist/` is checked in.** GitHub Actions requires the compiled JS to be in the repo. Never add `dist/` to `.gitignore`.
 
@@ -46,14 +48,26 @@ When `gitHubToken` is provided, the action creates a GitHub Deployment with the 
 
 ```sh
 yarn install
-yarn build      # compiles src/index.ts → dist/index.js via esbuild
+yarn build      # esbuild: src/index.ts (+ bundled deps) → dist/index.cjs
 ```
 
-### Type-check
+### Type-check and format
 
 ```sh
 yarn typecheck   # tsc --noEmit
+yarn fmt         # Prettier write
+yarn fmt:check   # Prettier check (used in CI)
 ```
+
+### Tests
+
+```sh
+yarn test        # node --test src/*.test.ts
+```
+
+### CI
+
+See `.github/workflows/ci.yml`
 
 ### Testing locally
 
@@ -66,20 +80,20 @@ export CLOUDFLARE_API_TOKEN=...
 export CLOUDFLARE_ACCOUNT_ID=...
 ```
 
-Then run `node dist/index.js` directly, passing inputs via `INPUT_` env vars (e.g. `INPUT_APITOKEN`, `INPUT_DIRECTORY`).
+Then run `node dist/index.cjs` directly, passing inputs via `INPUT_*` env vars (e.g. `INPUT_APITOKEN`, `INPUT_TYPE`, `INPUT_DIRECTORY` — use the same names GitHub Actions uses for your inputs).
 
 ## Making changes
 
 1. Edit source files.
-2. **Always run `yarn fmt`, `yarn typecheck`, and `yarn build` after editing files.**
-3. **Always commit both `src/` and `dist/` changes together.** The `dist/` bundle is what GitHub Actions actually executes.
+2. Run `yarn ci` (runs `yarn fmt && yarn typecheck && yarn build && yarn test`).
+3. **Commit `src/` and `dist/` together.** The `dist/` bundle is what GitHub Actions runs; CI fails with `git diff --exit-code` if the committed bundle does not match the build.
 
 ## Adding new inputs
 
 1. Add the input to `action.yml` under `inputs:`.
 2. Read it in `src/index.ts` via `core.getInput("inputName")`.
-3. Update the README's Inputs table.
-4. Run `yarn fmt`, `yarn typecheck`, and `yarn build`.
+3. Update the README Inputs table.
+4. Follow **Making changes**.
 
 ## Dependencies
 
