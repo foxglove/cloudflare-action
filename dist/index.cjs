@@ -23770,6 +23770,7 @@ async function run() {
   const gitHubToken = getInput("gitHubToken");
   const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
   const productionBranch = getInput("productionBranch") || "main";
+  const previewDeploy = getInput("previewDeploy") !== "false";
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
   }
@@ -23815,6 +23816,13 @@ async function run() {
   }
   info(`Attempts: ${deployAttempts}
 `);
+  if (!isProduction && !previewDeploy) {
+    info("Preview deploys are disabled \u2014 skipping deployment.");
+    setOutput("deployment-url", "");
+    setOutput("command-output", "");
+    setOutput("command-stderr", "");
+    return;
+  }
   const label = projectName || readWranglerName(config.workingDirectory) || "workers";
   await group("Install Wrangler", () => installWrangler(wranglerVersion));
   const result = await group(
