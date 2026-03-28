@@ -310,6 +310,7 @@ async function run(): Promise<void> {
   const gitHubToken = core.getInput("gitHubToken");
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
+  const previewDeploy = core.getInput("previewDeploy") !== "false";
 
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
@@ -361,6 +362,14 @@ async function run(): Promise<void> {
     core.info(`Environment: ${environment}`);
   }
   core.info(`Attempts: ${deployAttempts}\n`);
+
+  if (!isProduction && !previewDeploy) {
+    core.info("Preview deploys are disabled — skipping deployment.");
+    core.setOutput("deployment-url", "");
+    core.setOutput("command-output", "");
+    core.setOutput("command-stderr", "");
+    return;
+  }
 
   const label =
     projectName || readWranglerName(config.workingDirectory) || "workers";

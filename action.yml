@@ -47,6 +47,10 @@ inputs:
     description: "Branch name that triggers a production deploy (default: main)"
     required: false
     default: "main"
+  previewDeploy:
+    description: "Whether to deploy preview environments for non-production branches (default: true)"
+    required: false
+    default: "true"
 
 outputs:
   deployment-url:
