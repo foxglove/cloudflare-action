@@ -19891,6 +19891,17 @@ function getInput(name, options) {
   }
   return val.trim();
 }
+function getBooleanInput(name, options) {
+  const trueValue = ["true", "True", "TRUE"];
+  const falseValue = ["false", "False", "FALSE"];
+  const val = getInput(name, options);
+  if (trueValue.includes(val))
+    return true;
+  if (falseValue.includes(val))
+    return false;
+  throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
+Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
 function setOutput(name, value) {
   const filePath = process.env["GITHUB_OUTPUT"] || "";
   if (filePath) {
@@ -23770,7 +23781,7 @@ async function run() {
   const gitHubToken = getInput("gitHubToken");
   const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
   const productionBranch = getInput("productionBranch") || "main";
-  const previewDeploy = getInput("previewDeploy") !== "false";
+  const previewDeploy = getBooleanInput("previewDeploy");
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
   }
