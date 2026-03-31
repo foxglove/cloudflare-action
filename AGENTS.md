@@ -6,7 +6,7 @@ This is a GitHub Action that deploys to Cloudflare Pages and Cloudflare Workers.
 
 ## Architecture
 
-This is a Node.js GitHub Action (runs via `node20`). Entry logic lives in `src/index.ts`; shared helpers (branch sanitization, URL extraction, minimal JSONC parsing for `wrangler.jsonc`) live in `src/utils.ts`. Everything is bundled into a single CommonJS file with esbuild.
+This is a Node.js GitHub Action (runs via `node24`). Entry logic lives in `src/index.ts`; shared helpers (branch sanitization, URL extraction, minimal JSONC parsing for `wrangler.jsonc`) live in `src/utils.ts`. Everything is bundled into a single CommonJS file with esbuild.
 
 ```
 action.yml           GitHub Action definition (inputs, outputs, entrypoint)
