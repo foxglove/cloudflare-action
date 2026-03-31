@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import {
   sanitizeBranchName,
   extractDeploymentUrl,
-  parseBooleanInput,
   parseJsonc,
 } from "./utils.ts";
 
@@ -84,46 +83,6 @@ describe("extractDeploymentUrl", () => {
   it("returns undefined when no URL matches", () => {
     assert.equal(extractDeploymentUrl("No URLs here"), undefined);
     assert.equal(extractDeploymentUrl(""), undefined);
-  });
-});
-
-describe("parseBooleanInput", () => {
-  it("returns booleans as-is", () => {
-    assert.equal(parseBooleanInput(true, "previewDeploy", false), true);
-    assert.equal(parseBooleanInput(false, "previewDeploy", true), false);
-  });
-
-  it("uses default value for undefined or empty strings", () => {
-    assert.equal(parseBooleanInput(undefined, "previewDeploy", true), true);
-    assert.equal(parseBooleanInput("", "previewDeploy", true), true);
-    assert.equal(parseBooleanInput("   ", "previewDeploy", false), false);
-  });
-
-  it("parses truthy string values", () => {
-    for (const input of ["true", "True", "TRUE"]) {
-      assert.equal(parseBooleanInput(input, "previewDeploy", false), true);
-    }
-  });
-
-  it("parses falsy string values", () => {
-    for (const input of ["false", "False", "FALSE"]) {
-      assert.equal(parseBooleanInput(input, "previewDeploy", true), false);
-    }
-  });
-
-  it("throws on non-YAML-boolean values", () => {
-    assert.throws(
-      () => parseBooleanInput("maybe", "previewDeploy", true),
-      /previewDeploy must be a boolean value/,
-    );
-    assert.throws(
-      () => parseBooleanInput("yes", "previewDeploy", true),
-      /previewDeploy must be a boolean value/,
-    );
-    assert.throws(
-      () => parseBooleanInput("1", "previewDeploy", true),
-      /previewDeploy must be a boolean value/,
-    );
   });
 });
 

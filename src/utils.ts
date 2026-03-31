@@ -13,32 +13,6 @@ export function extractDeploymentUrl(output: string): string | undefined {
   return urls?.[urls.length - 1];
 }
 
-export function parseBooleanInput(
-  value: string | boolean | undefined,
-  inputName: string,
-  defaultValue: boolean,
-): boolean {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (value == undefined || value.trim() === "") {
-    return defaultValue;
-  }
-
-  const normalized = value.trim();
-  if (["true", "True", "TRUE"].includes(normalized)) {
-    return true;
-  }
-  if (["false", "False", "FALSE"].includes(normalized)) {
-    return false;
-  }
-
-  throw new Error(
-    `${inputName} must be a boolean value. Accepted values: true | True | TRUE | false | False | FALSE`,
-  );
-}
-
 export function parseJsonc(raw: string): Record<string, unknown> {
   const stripped = raw
     .replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) =>

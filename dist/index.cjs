@@ -19891,6 +19891,17 @@ function getInput(name, options) {
   }
   return val.trim();
 }
+function getBooleanInput(name, options) {
+  const trueValue = ["true", "True", "TRUE"];
+  const falseValue = ["false", "False", "FALSE"];
+  const val = getInput(name, options);
+  if (trueValue.includes(val))
+    return true;
+  if (falseValue.includes(val))
+    return false;
+  throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
+Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
 function setOutput(name, value) {
   const filePath = process.env["GITHUB_OUTPUT"] || "";
   if (filePath) {
@@ -23556,24 +23567,6 @@ function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
   return urls?.[urls.length - 1];
 }
-function parseBooleanInput(value, inputName, defaultValue) {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (value == void 0 || value.trim() === "") {
-    return defaultValue;
-  }
-  const normalized = value.trim();
-  if (["true", "True", "TRUE"].includes(normalized)) {
-    return true;
-  }
-  if (["false", "False", "FALSE"].includes(normalized)) {
-    return false;
-  }
-  throw new Error(
-    `${inputName} must be a boolean value. Accepted values: true | True | TRUE | false | False | FALSE`
-  );
-}
 function parseJsonc(raw) {
   const stripped = raw.replace(
     /"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm,
@@ -23788,11 +23781,7 @@ async function run() {
   const gitHubToken = getInput("gitHubToken");
   const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
   const productionBranch = getInput("productionBranch") || "main";
-  const previewDeploy = parseBooleanInput(
-    getInput("previewDeploy"),
-    "previewDeploy",
-    true
-  );
+  const previewDeploy = getBooleanInput("previewDeploy");
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
   }

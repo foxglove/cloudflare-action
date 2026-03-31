@@ -6,7 +6,6 @@ import { Octokit } from "@octokit/rest";
 import {
   sanitizeBranchName,
   extractDeploymentUrl,
-  parseBooleanInput,
   parseJsonc,
 } from "./utils.js";
 
@@ -311,11 +310,7 @@ async function run(): Promise<void> {
   const gitHubToken = core.getInput("gitHubToken");
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
-  const previewDeploy = parseBooleanInput(
-    core.getInput("previewDeploy"),
-    "previewDeploy",
-    true,
-  );
+  const previewDeploy = core.getBooleanInput("previewDeploy");
 
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
