@@ -23556,6 +23556,24 @@ function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
   return urls?.[urls.length - 1];
 }
+function parseBooleanInput(value, inputName, defaultValue) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value == void 0 || value.trim() === "") {
+    return defaultValue;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "y", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "n", "off"].includes(normalized)) {
+    return false;
+  }
+  throw new Error(
+    `${inputName} must be a boolean value. Accepted values: true/false, 1/0, yes/no, on/off`
+  );
+}
 function parseJsonc(raw) {
   const stripped = raw.replace(
     /"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm,
@@ -23770,7 +23788,11 @@ async function run() {
   const gitHubToken = getInput("gitHubToken");
   const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
   const productionBranch = getInput("productionBranch") || "main";
-  const previewDeploy = getInput("previewDeploy") !== "false";
+  const previewDeploy = parseBooleanInput(
+    getInput("previewDeploy"),
+    "previewDeploy",
+    true
+  );
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
   }
