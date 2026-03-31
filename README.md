@@ -119,7 +119,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 | `gitHubToken`      | no       |         | GitHub token for creating Deployment statuses                                                 |
 | `deployAttempts`   | no       | `1`     | Number of deploy attempts before failing                                                      |
 | `productionBranch` | no       | `main`  | Branch name that triggers a production deploy                                                 |
-| `previewDeploy`    | no       | `true`  | Whether to deploy preview environments for non-production branches                            |
+| `previewDeploy`    | no       | `true`  | Whether to deploy preview environments for non-production branches (`true`/`false`, any case) |
 
 ## Outputs
 

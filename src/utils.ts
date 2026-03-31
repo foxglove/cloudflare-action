@@ -26,16 +26,16 @@ export function parseBooleanInput(
     return defaultValue;
   }
 
-  const normalized = value.trim().toLowerCase();
-  if (["true", "1", "yes", "y", "on"].includes(normalized)) {
+  const normalized = value.trim();
+  if (["true", "True", "TRUE"].includes(normalized)) {
     return true;
   }
-  if (["false", "0", "no", "n", "off"].includes(normalized)) {
+  if (["false", "False", "FALSE"].includes(normalized)) {
     return false;
   }
 
   throw new Error(
-    `${inputName} must be a boolean value. Accepted values: true/false, 1/0, yes/no, on/off`,
+    `${inputName} must be a boolean value. Accepted values: true | True | TRUE | false | False | FALSE`,
   );
 }
 

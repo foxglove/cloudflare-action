@@ -100,20 +100,28 @@ describe("parseBooleanInput", () => {
   });
 
   it("parses truthy string values", () => {
-    for (const input of ["true", "TRUE", " 1 ", "yes", "Y", "on"]) {
+    for (const input of ["true", "True", "TRUE"]) {
       assert.equal(parseBooleanInput(input, "previewDeploy", false), true);
     }
   });
 
   it("parses falsy string values", () => {
-    for (const input of ["false", "FALSE", " 0 ", "no", "N", "off"]) {
+    for (const input of ["false", "False", "FALSE"]) {
       assert.equal(parseBooleanInput(input, "previewDeploy", true), false);
     }
   });
 
-  it("throws on invalid values", () => {
+  it("throws on non-YAML-boolean values", () => {
     assert.throws(
       () => parseBooleanInput("maybe", "previewDeploy", true),
+      /previewDeploy must be a boolean value/,
+    );
+    assert.throws(
+      () => parseBooleanInput("yes", "previewDeploy", true),
+      /previewDeploy must be a boolean value/,
+    );
+    assert.throws(
+      () => parseBooleanInput("1", "previewDeploy", true),
       /previewDeploy must be a boolean value/,
     );
   });
