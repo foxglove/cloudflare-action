@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildWorkersArgs,
+  hasWranglerEnvironment,
   sanitizeBranchName,
   extractDeploymentUrl,
   parseJsonc,
@@ -48,6 +50,116 @@ describe("sanitizeBranchName", () => {
     assert.equal(
       sanitizeBranchName("dependabot/npm_and_yarn/lodash-4.17.21"),
       "dependabot-npm-and-yarn-lodash-4-17-21",
+    );
+  });
+});
+
+describe("buildWorkersArgs", () => {
+  it("production with no environment uses bare deploy", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: true,
+        branch: "main",
+        environment: "",
+      }),
+      ["deploy"],
+    );
+  });
+
+  it("production with environment passes --env", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: true,
+        branch: "main",
+        environment: "preview",
+      }),
+      ["deploy", "--env", "preview"],
+    );
+  });
+
+  it("preview with no environment omits --env", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: false,
+        branch: "feature/widget",
+        environment: "",
+      }),
+      ["versions", "upload", "--preview-alias", "feature-widget"],
+    );
+  });
+
+  it("preview with environment passes --env", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: false,
+        branch: "feature/widget",
+        environment: "preview",
+      }),
+      [
+        "versions",
+        "upload",
+        "--preview-alias",
+        "feature-widget",
+        "--env",
+        "preview",
+      ],
+    );
+  });
+
+  it("preview sanitizes the branch name into the alias", () => {
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch: "Feature/PROJ-123",
+      environment: "",
+    });
+    assert.equal(args[3], "feature-proj-123");
+  });
+});
+
+describe("hasWranglerEnvironment", () => {
+  it("returns false when config is undefined", () => {
+    assert.equal(hasWranglerEnvironment(undefined, "preview"), false);
+  });
+
+  it("returns false when config has no env field", () => {
+    assert.equal(hasWranglerEnvironment({ name: "web" }, "preview"), false);
+  });
+
+  it("returns false when env is not an object", () => {
+    assert.equal(
+      hasWranglerEnvironment({ name: "web", env: "preview" }, "preview"),
+      false,
+    );
+  });
+
+  it("returns false when the requested env is not defined", () => {
+    assert.equal(
+      hasWranglerEnvironment({ env: { staging: {} } }, "preview"),
+      false,
+    );
+  });
+
+  it("returns true when the requested env is defined as an object", () => {
+    assert.equal(
+      hasWranglerEnvironment(
+        { env: { preview: { vars: { FOO: "bar" } } } },
+        "preview",
+      ),
+      true,
+    );
+  });
+
+  it("returns true even for an empty env block", () => {
+    assert.equal(
+      hasWranglerEnvironment({ env: { preview: {} } }, "preview"),
+      true,
+    );
+  });
+
+  it("returns false when the env block is null", () => {
+    assert.equal(
+      hasWranglerEnvironment({ env: { preview: null } }, "preview"),
+      false,
     );
   });
 });

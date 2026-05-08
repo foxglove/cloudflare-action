@@ -23563,6 +23563,26 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 function sanitizeBranchName(branch) {
   return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
 }
+function buildWorkersArgs(opts) {
+  const args = opts.isProduction ? ["deploy"] : [
+    "versions",
+    "upload",
+    "--preview-alias",
+    sanitizeBranchName(opts.branch)
+  ];
+  if (opts.environment) {
+    args.push("--env", opts.environment);
+  }
+  return args;
+}
+function hasWranglerEnvironment(config, envName) {
+  if (!config || typeof config.env !== "object" || config.env === null) {
+    return false;
+  }
+  const env = config.env;
+  const block = env[envName];
+  return typeof block === "object" && block !== null;
+}
 function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
   return urls?.[urls.length - 1];
@@ -23584,15 +23604,19 @@ var RETRY_DELAY_MS = 1e4;
 async function sleep(ms) {
   return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
-function readWranglerName(workingDirectory) {
+function readWranglerConfig(workingDirectory) {
   const dir = workingDirectory || ".";
   for (const filename of ["wrangler.jsonc", "wrangler.json"]) {
     const filepath = path4.join(dir, filename);
     if (!fs3.existsSync(filepath)) continue;
-    const parsed = parseJsonc(fs3.readFileSync(filepath, "utf-8"));
-    if (typeof parsed.name === "string" && parsed.name) {
-      return parsed.name;
-    }
+    return parseJsonc(fs3.readFileSync(filepath, "utf-8"));
+  }
+  return void 0;
+}
+function readWranglerName(workingDirectory) {
+  const config = readWranglerConfig(workingDirectory);
+  if (config && typeof config.name === "string" && config.name) {
+    return config.name;
   }
   return void 0;
 }
@@ -23644,19 +23668,11 @@ ${stderr}`
   return { url: extractDeploymentUrl(stdout + "\n" + stderr), stdout, stderr };
 }
 async function deployWorkers(config) {
-  let args;
-  if (config.isProduction) {
-    args = ["deploy"];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  } else {
-    const previewAlias = sanitizeBranchName(config.branch);
-    args = ["versions", "upload", "--preview-alias", previewAlias];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  }
+  const args = buildWorkersArgs({
+    isProduction: config.isProduction,
+    branch: config.branch,
+    environment: config.environment
+  });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {
     const cmd = config.isProduction ? "wrangler deploy" : "wrangler versions upload";
@@ -23795,13 +23811,22 @@ async function run() {
     );
   }
   const isProduction = branch === productionBranch;
+  let effectiveEnvironment = environment;
+  let environmentAutoDetected = false;
+  if (mode === "workers" && !environment && !isProduction) {
+    const wranglerConfig = readWranglerConfig(workingDirectory);
+    if (hasWranglerEnvironment(wranglerConfig, "preview")) {
+      effectiveEnvironment = "preview";
+      environmentAutoDetected = true;
+    }
+  }
   const config = {
     apiToken,
     accountId,
     mode,
     directory,
     projectName,
-    environment,
+    environment: effectiveEnvironment,
     branch,
     isProduction,
     productionBranch,
@@ -23822,8 +23847,15 @@ async function run() {
     info(`Project: ${projectName}`);
     info(`Directory: ${directory}`);
   }
-  if (environment) {
-    info(`Environment: ${environment}`);
+  if (mode === "workers") {
+    if (effectiveEnvironment) {
+      const suffix = environmentAutoDetected ? " (auto-detected from wrangler config)" : "";
+      info(`Wrangler environment: ${effectiveEnvironment}${suffix}`);
+    } else {
+      info(`Wrangler environment: (none \u2014 top-level config)`);
+    }
+  } else if (environment) {
+    info(`Wrangler environment: ${environment}`);
   }
   info(`Attempts: ${deployAttempts}
 `);
