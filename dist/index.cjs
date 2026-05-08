@@ -23563,6 +23563,18 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 function sanitizeBranchName(branch) {
   return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
 }
+function buildWorkersArgs(opts) {
+  if (opts.isProduction) {
+    const args = ["deploy"];
+    if (opts.environment) {
+      args.push("--env", opts.environment);
+    }
+    return args;
+  }
+  const previewAlias = sanitizeBranchName(opts.branch);
+  const env = opts.environment || "preview";
+  return ["versions", "upload", "--preview-alias", previewAlias, "--env", env];
+}
 function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
   return urls?.[urls.length - 1];
@@ -23644,19 +23656,11 @@ ${stderr}`
   return { url: extractDeploymentUrl(stdout + "\n" + stderr), stdout, stderr };
 }
 async function deployWorkers(config) {
-  let args;
-  if (config.isProduction) {
-    args = ["deploy"];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  } else {
-    const previewAlias = sanitizeBranchName(config.branch);
-    args = ["versions", "upload", "--preview-alias", previewAlias];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  }
+  const args = buildWorkersArgs({
+    isProduction: config.isProduction,
+    branch: config.branch,
+    environment: config.environment
+  });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {
     const cmd = config.isProduction ? "wrangler deploy" : "wrangler versions upload";
@@ -23822,8 +23826,19 @@ async function run() {
     info(`Project: ${projectName}`);
     info(`Directory: ${directory}`);
   }
-  if (environment) {
-    info(`Environment: ${environment}`);
+  if (mode === "workers") {
+    if (isProduction) {
+      info(
+        environment ? `Wrangler environment: ${environment}` : `Wrangler environment: (none \u2014 top-level config)`
+      );
+    } else {
+      const effective = environment || "preview";
+      info(
+        environment ? `Wrangler environment: ${effective} (override)` : `Wrangler environment: ${effective} (default for preview)`
+      );
+    }
+  } else if (environment) {
+    info(`Wrangler environment: ${environment}`);
   }
   info(`Attempts: ${deployAttempts}
 `);

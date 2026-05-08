@@ -3,11 +3,7 @@ import * as exec from "@actions/exec";
 import * as fs from "fs";
 import * as path from "path";
 import { Octokit } from "@octokit/rest";
-import {
-  sanitizeBranchName,
-  extractDeploymentUrl,
-  parseJsonc,
-} from "./utils.js";
+import { buildWorkersArgs, extractDeploymentUrl, parseJsonc } from "./utils.js";
 
 type DeployMode = "pages" | "workers";
 
@@ -123,20 +119,11 @@ async function deployPages(config: Config): Promise<DeployResult> {
 }
 
 async function deployWorkers(config: Config): Promise<DeployResult> {
-  let args: string[];
-
-  if (config.isProduction) {
-    args = ["deploy"];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  } else {
-    const previewAlias = sanitizeBranchName(config.branch);
-    args = ["versions", "upload", "--preview-alias", previewAlias];
-    if (config.environment) {
-      args.push("--env", config.environment);
-    }
-  }
+  const args = buildWorkersArgs({
+    isProduction: config.isProduction,
+    branch: config.branch,
+    environment: config.environment,
+  });
 
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
 
@@ -358,8 +345,23 @@ async function run(): Promise<void> {
     core.info(`Project: ${projectName}`);
     core.info(`Directory: ${directory}`);
   }
-  if (environment) {
-    core.info(`Environment: ${environment}`);
+  if (mode === "workers") {
+    if (isProduction) {
+      core.info(
+        environment
+          ? `Wrangler environment: ${environment}`
+          : `Wrangler environment: (none — top-level config)`,
+      );
+    } else {
+      const effective = environment || "preview";
+      core.info(
+        environment
+          ? `Wrangler environment: ${effective} (override)`
+          : `Wrangler environment: ${effective} (default for preview)`,
+      );
+    }
+  } else if (environment) {
+    core.info(`Wrangler environment: ${environment}`);
   }
   core.info(`Attempts: ${deployAttempts}\n`);
 

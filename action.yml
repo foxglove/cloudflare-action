@@ -25,7 +25,11 @@ inputs:
       Also used as the GitHub Deployment environment label.
     required: false
   environment:
-    description: "Wrangler environment name (--env flag)"
+    description: >
+      Wrangler environment name (--env flag). Overrides defaults when set.
+      For Workers preview deploys, defaults to 'preview' when unset so previews
+      bind to env.preview resources in wrangler.jsonc instead of production
+      resources. For production deploys, no default — top-level config is used.
     required: false
   workingDirectory:
     description: "Directory to run wrangler commands from"

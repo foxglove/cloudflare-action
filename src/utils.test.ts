@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildWorkersArgs,
   sanitizeBranchName,
   extractDeploymentUrl,
   parseJsonc,
@@ -49,6 +50,75 @@ describe("sanitizeBranchName", () => {
       sanitizeBranchName("dependabot/npm_and_yarn/lodash-4.17.21"),
       "dependabot-npm-and-yarn-lodash-4-17-21",
     );
+  });
+});
+
+describe("buildWorkersArgs", () => {
+  it("production with no environment uses bare deploy", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: true,
+        branch: "main",
+        environment: "",
+      }),
+      ["deploy"],
+    );
+  });
+
+  it("production with environment passes --env", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: true,
+        branch: "main",
+        environment: "staging",
+      }),
+      ["deploy", "--env", "staging"],
+    );
+  });
+
+  it("preview with no environment defaults to --env preview", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: false,
+        branch: "feature/widget",
+        environment: "",
+      }),
+      [
+        "versions",
+        "upload",
+        "--preview-alias",
+        "feature-widget",
+        "--env",
+        "preview",
+      ],
+    );
+  });
+
+  it("preview with environment overrides the default", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: false,
+        branch: "feature/widget",
+        environment: "staging",
+      }),
+      [
+        "versions",
+        "upload",
+        "--preview-alias",
+        "feature-widget",
+        "--env",
+        "staging",
+      ],
+    );
+  });
+
+  it("preview sanitizes the branch name into the alias", () => {
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch: "Feature/PROJ-123",
+      environment: "",
+    });
+    assert.equal(args[3], "feature-proj-123");
   });
 });
 
