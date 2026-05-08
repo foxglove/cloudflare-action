@@ -3,7 +3,12 @@ import * as exec from "@actions/exec";
 import * as fs from "fs";
 import * as path from "path";
 import { Octokit } from "@octokit/rest";
-import { buildWorkersArgs, extractDeploymentUrl, parseJsonc } from "./utils.js";
+import {
+  buildWorkersArgs,
+  extractDeploymentUrl,
+  hasWranglerEnvironment,
+  parseJsonc,
+} from "./utils.js";
 
 type DeployMode = "pages" | "workers";
 
@@ -39,15 +44,22 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function readWranglerName(workingDirectory: string): string | undefined {
+function readWranglerConfig(
+  workingDirectory: string,
+): Record<string, unknown> | undefined {
   const dir = workingDirectory || ".";
   for (const filename of ["wrangler.jsonc", "wrangler.json"]) {
     const filepath = path.join(dir, filename);
     if (!fs.existsSync(filepath)) continue;
-    const parsed = parseJsonc(fs.readFileSync(filepath, "utf-8"));
-    if (typeof parsed.name === "string" && parsed.name) {
-      return parsed.name;
-    }
+    return parseJsonc(fs.readFileSync(filepath, "utf-8"));
+  }
+  return undefined;
+}
+
+function readWranglerName(workingDirectory: string): string | undefined {
+  const config = readWranglerConfig(workingDirectory);
+  if (config && typeof config.name === "string" && config.name) {
+    return config.name;
   }
   return undefined;
 }
@@ -315,13 +327,27 @@ async function run(): Promise<void> {
 
   const isProduction = branch === productionBranch;
 
+  // For Workers preview deploys, auto-detect `env.preview` in wrangler config.
+  // If present, default `--env preview` so previews bind to env.preview
+  // resources instead of top-level (production) resources. Caller can override
+  // by setting the `environment` input explicitly.
+  let effectiveEnvironment = environment;
+  let environmentAutoDetected = false;
+  if (mode === "workers" && !environment && !isProduction) {
+    const wranglerConfig = readWranglerConfig(workingDirectory);
+    if (hasWranglerEnvironment(wranglerConfig, "preview")) {
+      effectiveEnvironment = "preview";
+      environmentAutoDetected = true;
+    }
+  }
+
   const config: Config = {
     apiToken,
     accountId,
     mode,
     directory,
     projectName,
-    environment,
+    environment: effectiveEnvironment,
     branch,
     isProduction,
     productionBranch,
@@ -346,19 +372,13 @@ async function run(): Promise<void> {
     core.info(`Directory: ${directory}`);
   }
   if (mode === "workers") {
-    if (isProduction) {
-      core.info(
-        environment
-          ? `Wrangler environment: ${environment}`
-          : `Wrangler environment: (none — top-level config)`,
-      );
+    if (effectiveEnvironment) {
+      const suffix = environmentAutoDetected
+        ? " (auto-detected from wrangler config)"
+        : "";
+      core.info(`Wrangler environment: ${effectiveEnvironment}${suffix}`);
     } else {
-      const effective = environment || "preview";
-      core.info(
-        environment
-          ? `Wrangler environment: ${effective} (override)`
-          : `Wrangler environment: ${effective} (default for preview)`,
-      );
+      core.info(`Wrangler environment: (none — top-level config)`);
     }
   } else if (environment) {
     core.info(`Wrangler environment: ${environment}`);

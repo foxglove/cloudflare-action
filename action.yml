@@ -26,10 +26,11 @@ inputs:
     required: false
   environment:
     description: >
-      Wrangler environment name (--env flag). Overrides defaults when set.
-      For Workers preview deploys, defaults to 'preview' when unset so previews
-      bind to env.preview resources in wrangler.jsonc instead of production
-      resources. For production deploys, no default — top-level config is used.
+      Wrangler environment name (--env flag). When unset, Workers preview
+      deploys auto-detect env.preview in wrangler.jsonc / wrangler.json and
+      apply --env preview if present, so previews bind to env.preview resources
+      instead of production resources. Set this to override the auto-detection
+      or to apply an env to production deploys.
     required: false
   workingDirectory:
     description: "Directory to run wrangler commands from"

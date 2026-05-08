@@ -83,16 +83,18 @@ On `main` this runs `wrangler deploy` for a **production** deployment. On any ot
 
 ### Deploy modes
 
-| `type`    | Production command                    | Preview command                                                   |
-| --------- | ------------------------------------- | ----------------------------------------------------------------- |
-| `pages`   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`                         |
-| `workers` | `wrangler deploy`                     | `wrangler versions upload --preview-alias <branch> --env preview` |
+| `type`    | Production command                    | Preview command                                                                                         |
+| --------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `pages`   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`                                                               |
+| `workers` | `wrangler deploy`                     | `wrangler versions upload --preview-alias <branch>` (with `--env preview` if auto-detected — see below) |
 
 The branch is read from `GITHUB_HEAD_REF` (pull requests) or `GITHUB_REF_NAME` (pushes). A deploy is considered **production** when the branch matches `productionBranch` (default: `main`).
 
 ### Worker preview environments
 
-Workers preview deploys default to `--env preview`, so they bind to `env.preview` in your `wrangler.jsonc` instead of top-level (production) resources. Define an `env.preview` block with its own D1, KV, R2, etc. and previews will use those bindings without ever touching production data:
+`wrangler versions upload --preview-alias` does not automatically apply `env.preview` from your wrangler config — by default the preview Worker uses top-level config and binds to your production D1, KV, R2, etc.
+
+To avoid that, this action **auto-detects** an `env.preview` block in `wrangler.jsonc` / `wrangler.json` and adds `--env preview` to preview deploys when one is present. Define an `env.preview` block with its own bindings and previews will use them without ever touching production data:
 
 ```jsonc
 {
@@ -107,7 +109,11 @@ Workers preview deploys default to `--env preview`, so they bind to `env.preview
 }
 ```
 
-To override the default (e.g. to use a different env name on previews, or to use the same env for both production and preview), set the `environment` input. It applies to whichever deploy runs.
+If your wrangler config has no `env.preview` block, preview deploys behave as before — no `--env` flag is added.
+
+To override the auto-detection (e.g. to use a different env name, or to apply an env to production deploys too), set the `environment` input. It applies to whichever deploy runs and disables auto-detection.
+
+> Note: auto-detection only inspects `wrangler.jsonc` and `wrangler.json`. If you use `wrangler.toml`, set `environment` explicitly.
 
 ### GitHub Deployments
 
@@ -125,20 +131,20 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 
 ## Inputs
 
-| Input              | Required | Default | Description                                                                                                                                                     |
-| ------------------ | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `type`             | **yes**  |         | `pages` or `workers`                                                                                                                                            |
-| `apiToken`         | **yes**  |         | Cloudflare API token                                                                                                                                            |
-| `accountId`        | no       |         | Cloudflare account ID (can also be set via `CLOUDFLARE_ACCOUNT_ID` env var)                                                                                     |
-| `directory`        | no       |         | Directory of static assets to deploy (required for Pages)                                                                                                       |
-| `projectName`      | no       |         | Cloudflare Pages project name (required for Pages). Also used as the GitHub Deployment label.                                                                   |
-| `environment`      | no       |         | Wrangler environment name (`--env` flag). For Workers, preview deploys default to `preview` when unset; production has no default. Set this to override either. |
-| `workingDirectory` | no       |         | Directory to run wrangler commands from                                                                                                                         |
-| `wranglerVersion`  | no       | latest  | Wrangler version to install                                                                                                                                     |
-| `gitHubToken`      | no       |         | GitHub token for creating Deployment statuses                                                                                                                   |
-| `deployAttempts`   | no       | `1`     | Number of deploy attempts before failing                                                                                                                        |
-| `productionBranch` | no       | `main`  | Branch name that triggers a production deploy                                                                                                                   |
-| `previewDeploy`    | no       | `true`  | Whether to deploy preview environments for non-production branches (`true`/`false`, any case)                                                                   |
+| Input              | Required | Default | Description                                                                                                                                                                                                     |
+| ------------------ | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`             | **yes**  |         | `pages` or `workers`                                                                                                                                                                                            |
+| `apiToken`         | **yes**  |         | Cloudflare API token                                                                                                                                                                                            |
+| `accountId`        | no       |         | Cloudflare account ID (can also be set via `CLOUDFLARE_ACCOUNT_ID` env var)                                                                                                                                     |
+| `directory`        | no       |         | Directory of static assets to deploy (required for Pages)                                                                                                                                                       |
+| `projectName`      | no       |         | Cloudflare Pages project name (required for Pages). Also used as the GitHub Deployment label.                                                                                                                   |
+| `environment`      | no       |         | Wrangler environment name (`--env` flag). When unset, Workers preview deploys auto-detect `env.preview` from `wrangler.jsonc`. Set this to override the auto-detection or to use an env for production deploys. |
+| `workingDirectory` | no       |         | Directory to run wrangler commands from                                                                                                                                                                         |
+| `wranglerVersion`  | no       | latest  | Wrangler version to install                                                                                                                                                                                     |
+| `gitHubToken`      | no       |         | GitHub token for creating Deployment statuses                                                                                                                                                                   |
+| `deployAttempts`   | no       | `1`     | Number of deploy attempts before failing                                                                                                                                                                        |
+| `productionBranch` | no       | `main`  | Branch name that triggers a production deploy                                                                                                                                                                   |
+| `previewDeploy`    | no       | `true`  | Whether to deploy preview environments for non-production branches (`true`/`false`, any case)                                                                                                                   |
 
 ## Outputs
 
@@ -190,9 +196,9 @@ For non-production branches the action sanitizes the branch name into a URL-safe
     wranglerVersion: "3.99.0"
 ```
 
-### Worker with a wrangler environment override
+### Worker with an explicit wrangler environment
 
-By default, Workers production deploys use top-level config and preview deploys use `--env preview`. Set `environment` to override both:
+By default, Workers production deploys use top-level config and preview deploys auto-detect `env.preview`. Set `environment` to apply a specific env to whichever deploy runs (and disable auto-detection):
 
 ```yaml
 - uses: foxglove/cloudflare-action@v1
@@ -200,7 +206,7 @@ By default, Workers production deploys use top-level config and preview deploys 
     type: workers
     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    environment: staging
+    environment: preview
 ```
 
 ### Custom production branch

@@ -8,26 +8,38 @@ export function sanitizeBranchName(branch: string): string {
     .replace(/-+$/, "");
 }
 
-// Preview Worker deploys default to `--env preview` so they bind to
-// `env.preview` resources in `wrangler.jsonc` instead of production resources.
-// Production deploys have no default — top-level config is used unless
-// `environment` is explicitly set.
 export function buildWorkersArgs(opts: {
   isProduction: boolean;
   branch: string;
   environment: string;
 }): string[] {
-  if (opts.isProduction) {
-    const args = ["deploy"];
-    if (opts.environment) {
-      args.push("--env", opts.environment);
-    }
-    return args;
+  const args: string[] = opts.isProduction
+    ? ["deploy"]
+    : [
+        "versions",
+        "upload",
+        "--preview-alias",
+        sanitizeBranchName(opts.branch),
+      ];
+  if (opts.environment) {
+    args.push("--env", opts.environment);
   }
+  return args;
+}
 
-  const previewAlias = sanitizeBranchName(opts.branch);
-  const env = opts.environment || "preview";
-  return ["versions", "upload", "--preview-alias", previewAlias, "--env", env];
+// Returns true if a parsed wrangler config defines `env.<envName>` as an
+// object. Used to auto-detect preview environments without forcing consumers
+// to opt in via input.
+export function hasWranglerEnvironment(
+  config: Record<string, unknown> | undefined,
+  envName: string,
+): boolean {
+  if (!config || typeof config.env !== "object" || config.env === null) {
+    return false;
+  }
+  const env = config.env as Record<string, unknown>;
+  const block = env[envName];
+  return typeof block === "object" && block !== null;
 }
 
 export function extractDeploymentUrl(output: string): string | undefined {

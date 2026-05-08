@@ -23564,16 +23564,24 @@ function sanitizeBranchName(branch) {
   return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
 }
 function buildWorkersArgs(opts) {
-  if (opts.isProduction) {
-    const args = ["deploy"];
-    if (opts.environment) {
-      args.push("--env", opts.environment);
-    }
-    return args;
+  const args = opts.isProduction ? ["deploy"] : [
+    "versions",
+    "upload",
+    "--preview-alias",
+    sanitizeBranchName(opts.branch)
+  ];
+  if (opts.environment) {
+    args.push("--env", opts.environment);
   }
-  const previewAlias = sanitizeBranchName(opts.branch);
-  const env = opts.environment || "preview";
-  return ["versions", "upload", "--preview-alias", previewAlias, "--env", env];
+  return args;
+}
+function hasWranglerEnvironment(config, envName) {
+  if (!config || typeof config.env !== "object" || config.env === null) {
+    return false;
+  }
+  const env = config.env;
+  const block = env[envName];
+  return typeof block === "object" && block !== null;
 }
 function extractDeploymentUrl(output) {
   const urls = output.match(/https:\/\/[^\s]+\.(?:pages|workers)\.dev/g);
@@ -23596,15 +23604,19 @@ var RETRY_DELAY_MS = 1e4;
 async function sleep(ms) {
   return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
-function readWranglerName(workingDirectory) {
+function readWranglerConfig(workingDirectory) {
   const dir = workingDirectory || ".";
   for (const filename of ["wrangler.jsonc", "wrangler.json"]) {
     const filepath = path4.join(dir, filename);
     if (!fs3.existsSync(filepath)) continue;
-    const parsed = parseJsonc(fs3.readFileSync(filepath, "utf-8"));
-    if (typeof parsed.name === "string" && parsed.name) {
-      return parsed.name;
-    }
+    return parseJsonc(fs3.readFileSync(filepath, "utf-8"));
+  }
+  return void 0;
+}
+function readWranglerName(workingDirectory) {
+  const config = readWranglerConfig(workingDirectory);
+  if (config && typeof config.name === "string" && config.name) {
+    return config.name;
   }
   return void 0;
 }
@@ -23799,13 +23811,22 @@ async function run() {
     );
   }
   const isProduction = branch === productionBranch;
+  let effectiveEnvironment = environment;
+  let environmentAutoDetected = false;
+  if (mode === "workers" && !environment && !isProduction) {
+    const wranglerConfig = readWranglerConfig(workingDirectory);
+    if (hasWranglerEnvironment(wranglerConfig, "preview")) {
+      effectiveEnvironment = "preview";
+      environmentAutoDetected = true;
+    }
+  }
   const config = {
     apiToken,
     accountId,
     mode,
     directory,
     projectName,
-    environment,
+    environment: effectiveEnvironment,
     branch,
     isProduction,
     productionBranch,
@@ -23827,15 +23848,11 @@ async function run() {
     info(`Directory: ${directory}`);
   }
   if (mode === "workers") {
-    if (isProduction) {
-      info(
-        environment ? `Wrangler environment: ${environment}` : `Wrangler environment: (none \u2014 top-level config)`
-      );
+    if (effectiveEnvironment) {
+      const suffix = environmentAutoDetected ? " (auto-detected from wrangler config)" : "";
+      info(`Wrangler environment: ${effectiveEnvironment}${suffix}`);
     } else {
-      const effective = environment || "preview";
-      info(
-        environment ? `Wrangler environment: ${effective} (override)` : `Wrangler environment: ${effective} (default for preview)`
-      );
+      info(`Wrangler environment: (none \u2014 top-level config)`);
     }
   } else if (environment) {
     info(`Wrangler environment: ${environment}`);
