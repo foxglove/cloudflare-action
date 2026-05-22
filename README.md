@@ -27,19 +27,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       deployments: write
+
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v6
       - run: yarn install --immutable
+      - run: yarn run build
 
-      - name: Example build comand
-        run: yarn run build
-
-      - name: Deploy to Cloudflare Pages
-        uses: foxglove/cloudflare-action@v1
+      - uses: foxglove/cloudflare-action@v1
         with:
           type: pages
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -64,14 +62,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       deployments: write
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Deploy Worker
-        uses: foxglove/cloudflare-action@v1
+    steps:
+      - uses: actions/checkout@v6
+      - run: yarn install --immutable
+      - run: yarn run build
+
+      - uses: foxglove/cloudflare-action@v1
         with:
           type: workers
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
