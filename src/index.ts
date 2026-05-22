@@ -25,7 +25,6 @@ interface Config {
   isProduction: boolean;
   productionBranch: string;
   workingDirectory: string;
-  wranglerVersion: string;
   gitHubToken: string;
   deployAttempts: number;
 }
@@ -68,10 +67,95 @@ function readWranglerName(workingDirectory: string): string | undefined {
 // Wrangler
 // ---------------------------------------------------------------------------
 
-async function installWrangler(version: string): Promise<void> {
-  const pkg = version ? `wrangler@${version}` : "wrangler@latest";
+function wranglerBinNames(): string[] {
+  return process.platform === "win32"
+    ? ["wrangler.cmd", "wrangler.exe", "wrangler.bat", "wrangler"]
+    : ["wrangler"];
+}
+
+function isExecutableFile(filepath: string): boolean {
+  try {
+    const stat = fs.statSync(filepath);
+    if (!stat.isFile()) {
+      return false;
+    }
+    if (process.platform !== "win32") {
+      fs.accessSync(filepath, fs.constants.X_OK);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function uniqueDirs(dirs: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const dir of dirs) {
+    const resolved = path.resolve(dir);
+    if (!seen.has(resolved)) {
+      seen.add(resolved);
+      result.push(resolved);
+    }
+  }
+  return result;
+}
+
+function findLocalWrangler(workingDirectory: string): string | undefined {
+  const dirs = uniqueDirs(
+    [workingDirectory, process.env.GITHUB_WORKSPACE, process.cwd()].filter(
+      (dir): dir is string => dir != undefined && dir !== "",
+    ),
+  );
+
+  for (const dir of dirs) {
+    for (const binName of wranglerBinNames()) {
+      const filepath = path.join(dir, "node_modules", ".bin", binName);
+      if (isExecutableFile(filepath)) {
+        return filepath;
+      }
+    }
+  }
+  return undefined;
+}
+
+function findPathWrangler(): string | undefined {
+  const pathValue = process.env.PATH;
+  if (!pathValue) {
+    return undefined;
+  }
+
+  for (const dir of pathValue.split(path.delimiter)) {
+    const resolvedDir = path.resolve(dir || ".");
+    for (const binName of wranglerBinNames()) {
+      const filepath = path.join(resolvedDir, binName);
+      if (isExecutableFile(filepath)) {
+        return filepath;
+      }
+    }
+  }
+  return undefined;
+}
+
+function findExistingWrangler(workingDirectory: string): string | undefined {
+  return findLocalWrangler(workingDirectory) ?? findPathWrangler();
+}
+
+async function installWrangler(): Promise<void> {
+  const pkg = "wrangler@latest";
   core.info(`Installing ${pkg}...`);
   await exec.exec("npm", ["install", "--global", pkg]);
+}
+
+async function setupWrangler(workingDirectory: string): Promise<void> {
+  const existingWrangler = findExistingWrangler(workingDirectory);
+  if (existingWrangler) {
+    core.info(`Using existing Wrangler at ${existingWrangler}`);
+    core.addPath(path.dirname(existingWrangler));
+    return;
+  }
+
+  await installWrangler();
 }
 
 async function runWrangler(
@@ -305,7 +389,6 @@ async function run(): Promise<void> {
   const projectName = core.getInput("projectName");
   const environment = core.getInput("environment");
   const workingDirectory = core.getInput("workingDirectory");
-  const wranglerVersion = core.getInput("wranglerVersion");
   const gitHubToken = core.getInput("gitHubToken");
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
@@ -352,7 +435,6 @@ async function run(): Promise<void> {
     isProduction,
     productionBranch,
     workingDirectory,
-    wranglerVersion,
     gitHubToken,
     deployAttempts,
   };
@@ -396,7 +478,7 @@ async function run(): Promise<void> {
   const label =
     projectName || readWranglerName(config.workingDirectory) || "workers";
 
-  await core.group("Install Wrangler", () => installWrangler(wranglerVersion));
+  await core.group("Setup Wrangler", () => setupWrangler(workingDirectory));
 
   const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
     deployWithRetry(config),
