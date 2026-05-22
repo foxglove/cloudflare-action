@@ -25,7 +25,6 @@ interface Config {
   isProduction: boolean;
   productionBranch: string;
   workingDirectory: string;
-  wranglerCommand: string;
   gitHubToken: string;
   deployAttempts: number;
 }
@@ -148,15 +147,15 @@ async function installWrangler(): Promise<void> {
   await exec.exec("npm", ["install", "--global", pkg]);
 }
 
-async function setupWrangler(workingDirectory: string): Promise<string> {
+async function setupWrangler(workingDirectory: string): Promise<void> {
   const existingWrangler = findExistingWrangler(workingDirectory);
   if (existingWrangler) {
     core.info(`Using existing Wrangler at ${existingWrangler}`);
-    return existingWrangler;
+    core.addPath(path.dirname(existingWrangler));
+    return;
   }
 
   await installWrangler();
-  return "wrangler";
 }
 
 async function runWrangler(
@@ -172,7 +171,7 @@ async function runWrangler(
   if (config.apiToken) env.CLOUDFLARE_API_TOKEN = config.apiToken;
   if (config.accountId) env.CLOUDFLARE_ACCOUNT_ID = config.accountId;
 
-  const exitCode = await exec.exec(config.wranglerCommand, args, {
+  const exitCode = await exec.exec("wrangler", args, {
     cwd: config.workingDirectory || undefined,
     env,
     listeners: {
@@ -436,7 +435,6 @@ async function run(): Promise<void> {
     isProduction,
     productionBranch,
     workingDirectory,
-    wranglerCommand: "wrangler",
     gitHubToken,
     deployAttempts,
   };
@@ -480,9 +478,7 @@ async function run(): Promise<void> {
   const label =
     projectName || readWranglerName(config.workingDirectory) || "workers";
 
-  config.wranglerCommand = await core.group("Setup Wrangler", () =>
-    setupWrangler(workingDirectory),
-  );
+  await core.group("Setup Wrangler", () => setupWrangler(workingDirectory));
 
   const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
     deployWithRetry(config),
