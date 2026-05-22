@@ -140,7 +140,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 | `projectName`      | no       |         | Cloudflare Pages project name (required for Pages). Also used as the GitHub Deployment label.                                                                                                                   |
 | `environment`      | no       |         | Wrangler environment name (`--env` flag). When unset, Workers preview deploys auto-detect `env.preview` from `wrangler.jsonc`. Set this to override the auto-detection or to use an env for production deploys. |
 | `workingDirectory` | no       |         | Directory to run wrangler commands from                                                                                                                                                                         |
-| `wranglerVersion`  | no       | latest  | Wrangler version to install                                                                                                                                                                                     |
+| `wranglerVersion`  | no       | latest  | Wrangler version to install when Wrangler is not already available                                                                                                                                              |
 | `gitHubToken`      | no       |         | GitHub token for creating Deployment statuses                                                                                                                                                                   |
 | `deployAttempts`   | no       | `1`     | Number of deploy attempts before failing                                                                                                                                                                        |
 | `productionBranch` | no       | `main`  | Branch name that triggers a production deploy                                                                                                                                                                   |
@@ -187,6 +187,11 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 ```
 
 ### Pin a specific Wrangler version
+
+If Wrangler is already available from `node_modules/.bin` in `workingDirectory`
+or the GitHub workspace, or from `PATH`, the action uses that executable and
+skips the global install. This lets you pin Wrangler in your own `package.json`
+and install dependencies before running the action.
 
 ```yaml
 - uses: foxglove/cloudflare-action@v1

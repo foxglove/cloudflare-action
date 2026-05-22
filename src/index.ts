@@ -26,6 +26,7 @@ interface Config {
   productionBranch: string;
   workingDirectory: string;
   wranglerVersion: string;
+  wranglerCommand: string;
   gitHubToken: string;
   deployAttempts: number;
 }
@@ -68,10 +69,98 @@ function readWranglerName(workingDirectory: string): string | undefined {
 // Wrangler
 // ---------------------------------------------------------------------------
 
+function wranglerBinNames(): string[] {
+  return process.platform === "win32"
+    ? ["wrangler.cmd", "wrangler.exe", "wrangler.bat", "wrangler"]
+    : ["wrangler"];
+}
+
+function isExecutableFile(filepath: string): boolean {
+  try {
+    const stat = fs.statSync(filepath);
+    if (!stat.isFile()) {
+      return false;
+    }
+    if (process.platform !== "win32") {
+      fs.accessSync(filepath, fs.constants.X_OK);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function uniqueDirs(dirs: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const dir of dirs) {
+    const resolved = path.resolve(dir);
+    if (!seen.has(resolved)) {
+      seen.add(resolved);
+      result.push(resolved);
+    }
+  }
+  return result;
+}
+
+function findLocalWrangler(workingDirectory: string): string | undefined {
+  const dirs = uniqueDirs(
+    [workingDirectory, process.env.GITHUB_WORKSPACE, process.cwd()].filter(
+      (dir): dir is string => dir != undefined && dir !== "",
+    ),
+  );
+
+  for (const dir of dirs) {
+    for (const binName of wranglerBinNames()) {
+      const filepath = path.join(dir, "node_modules", ".bin", binName);
+      if (isExecutableFile(filepath)) {
+        return filepath;
+      }
+    }
+  }
+  return undefined;
+}
+
+function findPathWrangler(): string | undefined {
+  const pathValue = process.env.PATH;
+  if (!pathValue) {
+    return undefined;
+  }
+
+  for (const dir of pathValue.split(path.delimiter)) {
+    const resolvedDir = path.resolve(dir || ".");
+    for (const binName of wranglerBinNames()) {
+      const filepath = path.join(resolvedDir, binName);
+      if (isExecutableFile(filepath)) {
+        return filepath;
+      }
+    }
+  }
+  return undefined;
+}
+
+function findExistingWrangler(workingDirectory: string): string | undefined {
+  return findLocalWrangler(workingDirectory) ?? findPathWrangler();
+}
+
 async function installWrangler(version: string): Promise<void> {
   const pkg = version ? `wrangler@${version}` : "wrangler@latest";
   core.info(`Installing ${pkg}...`);
   await exec.exec("npm", ["install", "--global", pkg]);
+}
+
+async function setupWrangler(
+  version: string,
+  workingDirectory: string,
+): Promise<string> {
+  const existingWrangler = findExistingWrangler(workingDirectory);
+  if (existingWrangler) {
+    core.info(`Using existing Wrangler at ${existingWrangler}`);
+    return existingWrangler;
+  }
+
+  await installWrangler(version);
+  return "wrangler";
 }
 
 async function runWrangler(
@@ -87,7 +176,7 @@ async function runWrangler(
   if (config.apiToken) env.CLOUDFLARE_API_TOKEN = config.apiToken;
   if (config.accountId) env.CLOUDFLARE_ACCOUNT_ID = config.accountId;
 
-  const exitCode = await exec.exec("wrangler", args, {
+  const exitCode = await exec.exec(config.wranglerCommand, args, {
     cwd: config.workingDirectory || undefined,
     env,
     listeners: {
@@ -353,6 +442,7 @@ async function run(): Promise<void> {
     productionBranch,
     workingDirectory,
     wranglerVersion,
+    wranglerCommand: "wrangler",
     gitHubToken,
     deployAttempts,
   };
@@ -396,7 +486,9 @@ async function run(): Promise<void> {
   const label =
     projectName || readWranglerName(config.workingDirectory) || "workers";
 
-  await core.group("Install Wrangler", () => installWrangler(wranglerVersion));
+  config.wranglerCommand = await core.group("Setup Wrangler", () =>
+    setupWrangler(wranglerVersion, workingDirectory),
+  );
 
   const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
     deployWithRetry(config),

@@ -36,7 +36,7 @@ inputs:
     description: "Directory to run wrangler commands from"
     required: false
   wranglerVersion:
-    description: "Wrangler version to install (default: latest)"
+    description: "Wrangler version to install when Wrangler is not already available (default: latest)"
     required: false
   gitHubToken:
     description: >
