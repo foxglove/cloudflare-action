@@ -23877,7 +23877,7 @@ async function run() {
   const environment = getInput("environment");
   const workingDirectory = getInput("workingDirectory");
   const gitHubToken = getInput("gitHubToken");
-  const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
+  const deployAttempts = parseInt(getInput("deployAttempts") || "3", 10);
   const productionBranch = getInput("productionBranch") || "main";
   const previewDeploy = getBooleanInput("previewDeploy");
   if (mode === "pages" && !projectName) {

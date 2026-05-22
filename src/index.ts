@@ -390,7 +390,7 @@ async function run(): Promise<void> {
   const environment = core.getInput("environment");
   const workingDirectory = core.getInput("workingDirectory");
   const gitHubToken = core.getInput("gitHubToken");
-  const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
+  const deployAttempts = parseInt(core.getInput("deployAttempts") || "3", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
   const previewDeploy = core.getBooleanInput("previewDeploy");
 

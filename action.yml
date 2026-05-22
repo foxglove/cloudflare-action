@@ -42,9 +42,9 @@ inputs:
       repo's Deployments tab and on PRs.
     required: false
   deployAttempts:
-    description: "Number of deploy attempts before failing (default: 1)"
+    description: "Number of deploy attempts before failing (default: 3)"
     required: false
-    default: "1"
+    default: "3"
   productionBranch:
     description: "Branch name that triggers a production deploy (default: main)"
     required: false
