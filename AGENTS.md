@@ -24,7 +24,7 @@ LICENSE              MIT license
 
 ### Key design decisions
 
-- **Explicit mode selection.** Users set `type: pages` or `type: workers`. No magic detection.
+- **Explicit Pages selection.** Users set `type: pages` for Pages; omitted `type` defaults to Workers.
 - **Small surface area.** Core flow stays in `src/index.ts`; keep `utils.ts` limited to testable, side-effect-free helpers.
 - **Wrangler setup.** The action uses an existing `wrangler` executable from local `node_modules/.bin` or `PATH` when available. If none is found, Wrangler is installed globally via `npm install -g wrangler@latest` so it is available for retries without re-downloading. Use the consuming project's `package.json` to pin Wrangler versions.
 - **`dist/` is checked in.** GitHub Actions requires the compiled JS to be in the repo. Never add `dist/` to `.gitignore`.

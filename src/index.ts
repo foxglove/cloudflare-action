@@ -377,7 +377,7 @@ async function run(): Promise<void> {
   const apiToken = core.getInput("apiToken", { required: true });
   core.setSecret(apiToken);
 
-  const typeInput = core.getInput("type", { required: true });
+  const typeInput = core.getInput("type") || "workers";
   if (typeInput !== "pages" && typeInput !== "workers") {
     throw new Error(`type must be "pages" or "workers", got "${typeInput}"`);
   }
