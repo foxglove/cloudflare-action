@@ -195,7 +195,7 @@ on `PATH`, before falling back to installing `wrangler@latest` globally.
 ```json
 {
   "devDependencies": {
-    "wrangler": "3.99.0"
+    "wrangler": "4.94.0"
   }
 }
 ```
