@@ -33,8 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build
-        run: npm ci && npm run build
+      - run: yarn install --immutable
+
+      - name: Example build comand
+        run: yarn run build
 
       - name: Deploy to Cloudflare Pages
         uses: foxglove/cloudflare-action@v1
@@ -201,7 +203,7 @@ on `PATH`, before falling back to installing `wrangler@latest` globally.
 ```
 
 ```yaml
-- run: npm ci
+- run: yarn install --immutable
 
 - uses: foxglove/cloudflare-action@v1
   with:
