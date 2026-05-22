@@ -23866,7 +23866,7 @@ async function createGitHubDeployment(token, environmentName, environmentUrl, re
 async function run() {
   const apiToken = getInput("apiToken", { required: true });
   setSecret(apiToken);
-  const typeInput = getInput("type", { required: true });
+  const typeInput = getInput("type") || "workers";
   if (typeInput !== "pages" && typeInput !== "workers") {
     throw new Error(`type must be "pages" or "workers", got "${typeInput}"`);
   }

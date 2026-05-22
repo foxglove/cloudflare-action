@@ -8,8 +8,9 @@ branding:
 
 inputs:
   type:
-    description: "Deploy type: 'pages' for Cloudflare Pages or 'workers' for Cloudflare Workers"
-    required: true
+    description: "Deploy type: 'pages' for Cloudflare Pages or 'workers' for Cloudflare Workers (default: workers)"
+    required: false
+    default: "workers"
   apiToken:
     description: "Cloudflare API token"
     required: true
