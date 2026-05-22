@@ -35,9 +35,6 @@ inputs:
   workingDirectory:
     description: "Directory to run wrangler commands from"
     required: false
-  wranglerVersion:
-    description: "Wrangler version to install when Wrangler is not already available (default: latest)"
-    required: false
   gitHubToken:
     description: >
       GitHub token for creating Deployment statuses. When provided, a GitHub

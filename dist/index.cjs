@@ -23684,18 +23684,18 @@ function findPathWrangler() {
 function findExistingWrangler(workingDirectory) {
   return findLocalWrangler(workingDirectory) ?? findPathWrangler();
 }
-async function installWrangler(version) {
-  const pkg = version ? `wrangler@${version}` : "wrangler@latest";
+async function installWrangler() {
+  const pkg = "wrangler@latest";
   info(`Installing ${pkg}...`);
   await exec("npm", ["install", "--global", pkg]);
 }
-async function setupWrangler(version, workingDirectory) {
+async function setupWrangler(workingDirectory) {
   const existingWrangler = findExistingWrangler(workingDirectory);
   if (existingWrangler) {
     info(`Using existing Wrangler at ${existingWrangler}`);
     return existingWrangler;
   }
-  await installWrangler(version);
+  await installWrangler();
   return "wrangler";
 }
 async function runWrangler(args, config) {
@@ -23866,7 +23866,6 @@ async function run() {
   const projectName = getInput("projectName");
   const environment = getInput("environment");
   const workingDirectory = getInput("workingDirectory");
-  const wranglerVersion = getInput("wranglerVersion");
   const gitHubToken = getInput("gitHubToken");
   const deployAttempts = parseInt(getInput("deployAttempts") || "1", 10);
   const productionBranch = getInput("productionBranch") || "main";
@@ -23904,7 +23903,6 @@ async function run() {
     isProduction,
     productionBranch,
     workingDirectory,
-    wranglerVersion,
     wranglerCommand: "wrangler",
     gitHubToken,
     deployAttempts
@@ -23943,7 +23941,7 @@ async function run() {
   const label = projectName || readWranglerName(config.workingDirectory) || "workers";
   config.wranglerCommand = await group(
     "Setup Wrangler",
-    () => setupWrangler(wranglerVersion, workingDirectory)
+    () => setupWrangler(workingDirectory)
   );
   const result = await group(
     `Deploy to Cloudflare ${modeLabel}`,

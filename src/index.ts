@@ -25,7 +25,6 @@ interface Config {
   isProduction: boolean;
   productionBranch: string;
   workingDirectory: string;
-  wranglerVersion: string;
   wranglerCommand: string;
   gitHubToken: string;
   deployAttempts: number;
@@ -143,23 +142,20 @@ function findExistingWrangler(workingDirectory: string): string | undefined {
   return findLocalWrangler(workingDirectory) ?? findPathWrangler();
 }
 
-async function installWrangler(version: string): Promise<void> {
-  const pkg = version ? `wrangler@${version}` : "wrangler@latest";
+async function installWrangler(): Promise<void> {
+  const pkg = "wrangler@latest";
   core.info(`Installing ${pkg}...`);
   await exec.exec("npm", ["install", "--global", pkg]);
 }
 
-async function setupWrangler(
-  version: string,
-  workingDirectory: string,
-): Promise<string> {
+async function setupWrangler(workingDirectory: string): Promise<string> {
   const existingWrangler = findExistingWrangler(workingDirectory);
   if (existingWrangler) {
     core.info(`Using existing Wrangler at ${existingWrangler}`);
     return existingWrangler;
   }
 
-  await installWrangler(version);
+  await installWrangler();
   return "wrangler";
 }
 
@@ -394,7 +390,6 @@ async function run(): Promise<void> {
   const projectName = core.getInput("projectName");
   const environment = core.getInput("environment");
   const workingDirectory = core.getInput("workingDirectory");
-  const wranglerVersion = core.getInput("wranglerVersion");
   const gitHubToken = core.getInput("gitHubToken");
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "1", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
@@ -441,7 +436,6 @@ async function run(): Promise<void> {
     isProduction,
     productionBranch,
     workingDirectory,
-    wranglerVersion,
     wranglerCommand: "wrangler",
     gitHubToken,
     deployAttempts,
@@ -487,7 +481,7 @@ async function run(): Promise<void> {
     projectName || readWranglerName(config.workingDirectory) || "workers";
 
   config.wranglerCommand = await core.group("Setup Wrangler", () =>
-    setupWrangler(wranglerVersion, workingDirectory),
+    setupWrangler(workingDirectory),
   );
 
   const result = await core.group(`Deploy to Cloudflare ${modeLabel}`, () =>
