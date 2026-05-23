@@ -153,7 +153,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 
 | Output           | Description                               |
 | ---------------- | ----------------------------------------- |
-| `deployment-url` | URL of the Cloudflare deployment          |
+| `url`            | URL of the Cloudflare deployment          |
 | `command-output` | Standard output from the wrangler command |
 | `command-stderr` | Standard error from the wrangler command  |
 
@@ -186,7 +186,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
     directory: dist
 
 - name: Print URL
-  run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}"
+  run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
 ```
 
 ### Use a pinned Wrangler version

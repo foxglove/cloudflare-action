@@ -23942,7 +23942,7 @@ async function run() {
 `);
   if (!isProduction && !previewDeploy) {
     info("Preview deploys are disabled \u2014 skipping deployment.");
-    setOutput("deployment-url", "");
+    setOutput("url", "");
     setOutput("command-output", "");
     setOutput("command-stderr", "");
     return;
@@ -23953,7 +23953,7 @@ async function run() {
     `Deploy to Cloudflare ${modeLabel}`,
     () => deployWithRetry(config)
   );
-  setOutput("deployment-url", result.url ?? "");
+  setOutput("url", result.url ?? "");
   setOutput("command-output", result.stdout);
   setOutput("command-stderr", result.stderr);
   if (result.url) {

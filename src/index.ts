@@ -469,7 +469,7 @@ async function run(): Promise<void> {
 
   if (!isProduction && !previewDeploy) {
     core.info("Preview deploys are disabled — skipping deployment.");
-    core.setOutput("deployment-url", "");
+    core.setOutput("url", "");
     core.setOutput("command-output", "");
     core.setOutput("command-stderr", "");
     return;
@@ -484,7 +484,7 @@ async function run(): Promise<void> {
     deployWithRetry(config),
   );
 
-  core.setOutput("deployment-url", result.url ?? "");
+  core.setOutput("url", result.url ?? "");
   core.setOutput("command-output", result.stdout);
   core.setOutput("command-stderr", result.stderr);
 
