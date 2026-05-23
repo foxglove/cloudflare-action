@@ -56,7 +56,7 @@ inputs:
     default: "true"
 
 outputs:
-  deployment-url:
+  url:
     description: "URL of the Cloudflare deployment"
   command-output:
     description: "Standard output from the wrangler command"
