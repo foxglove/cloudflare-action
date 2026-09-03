@@ -36,7 +36,7 @@ LICENSE              MIT license
 | Pages   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`          |
 | Workers | `wrangler deploy`                     | `wrangler versions upload --preview-alias <alias>` |
 
-Preview aliases for Workers are derived from the branch name — lowercased, non-alphanumeric characters replaced with hyphens, truncated to 50 characters.
+Preview aliases for Workers are derived from the branch name — lowercased, non-alphanumeric characters replaced with hyphens, and shortened with a stable hash when the alias and Worker name would exceed Cloudflare's 63-character DNS label limit.
 
 ### GitHub Deployments
 

@@ -23570,15 +23570,54 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 );
 
 // src/utils.ts
+var import_node_crypto = require("node:crypto");
+var MAX_PREVIEW_HOST_LABEL_LENGTH = 63;
+var PREVIEW_ALIAS_HASH_LENGTH = 4;
 function sanitizeBranchName(branch) {
-  return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
+  return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").replace(/-+$/, "");
+}
+function buildPreviewAlias(branch, workerName) {
+  const branchHash = (0, import_node_crypto.createHash)("sha256").update(branch).digest("hex").slice(0, PREVIEW_ALIAS_HASH_LENGTH);
+  const sanitizedBranch = sanitizeBranchName(branch);
+  const alias = sanitizedBranch ? /^[a-z]/.test(sanitizedBranch) ? sanitizedBranch : `branch-${sanitizedBranch}` : `branch-${branchHash}`;
+  const maxAliasLength = workerName ? MAX_PREVIEW_HOST_LABEL_LENGTH - workerName.length - 1 : 50;
+  if (maxAliasLength < 1) {
+    throw new Error(
+      `Worker name "${workerName}" leaves no room for a preview alias`
+    );
+  }
+  if (alias.length <= maxAliasLength) {
+    return alias;
+  }
+  const maxPrefixLength = maxAliasLength - PREVIEW_ALIAS_HASH_LENGTH - 1;
+  if (maxPrefixLength < 1) {
+    throw new Error(
+      `Worker name "${workerName}" leaves too little room for a unique preview alias`
+    );
+  }
+  const prefix = alias.slice(0, maxPrefixLength).replace(/-+$/, "");
+  return `${prefix}-${branchHash}`;
+}
+function getWorkerName(config, environment) {
+  if (!config || typeof config.name !== "string" || !config.name) {
+    return void 0;
+  }
+  if (!environment) {
+    return config.name;
+  }
+  const environments = typeof config.env === "object" && config.env !== null ? config.env : void 0;
+  const environmentConfig = environments?.[environment];
+  if (typeof environmentConfig === "object" && environmentConfig !== null && typeof environmentConfig.name === "string") {
+    return environmentConfig.name;
+  }
+  return `${config.name}-${environment}`;
 }
 function buildWorkersArgs(opts) {
   const args = opts.isProduction ? ["deploy"] : [
     "versions",
     "upload",
     "--preview-alias",
-    sanitizeBranchName(opts.branch)
+    buildPreviewAlias(opts.branch, opts.workerName)
   ];
   if (opts.environment) {
     args.push("--env", opts.environment);
@@ -23623,12 +23662,8 @@ function readWranglerConfig(workingDirectory) {
   }
   return void 0;
 }
-function readWranglerName(workingDirectory) {
-  const config = readWranglerConfig(workingDirectory);
-  if (config && typeof config.name === "string" && config.name) {
-    return config.name;
-  }
-  return void 0;
+function readWranglerName(workingDirectory, environment = "") {
+  return getWorkerName(readWranglerConfig(workingDirectory), environment);
 }
 function wranglerBinNames() {
   return process.platform === "win32" ? ["wrangler.cmd", "wrangler.exe", "wrangler.bat", "wrangler"] : ["wrangler"];
@@ -23754,7 +23789,8 @@ async function deployWorkers(config) {
   const args = buildWorkersArgs({
     isProduction: config.isProduction,
     branch: config.branch,
-    environment: config.environment
+    environment: config.environment,
+    workerName: config.workerName
   });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {
@@ -23913,6 +23949,7 @@ async function run() {
     isProduction,
     productionBranch,
     workingDirectory,
+    workerName: mode === "workers" ? readWranglerName(workingDirectory, effectiveEnvironment) || projectName || void 0 : void 0,
     gitHubToken,
     deployAttempts
   };
@@ -23947,7 +23984,7 @@ async function run() {
     setOutput("command-stderr", "");
     return;
   }
-  const label = projectName || readWranglerName(config.workingDirectory) || "workers";
+  const label = projectName || config.workerName || "workers";
   await group("Setup Wrangler", () => setupWrangler(workingDirectory));
   const result = await group(
     `Deploy to Cloudflare ${modeLabel}`,

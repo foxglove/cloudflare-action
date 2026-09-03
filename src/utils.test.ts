@@ -2,7 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildPreviewAlias,
   buildWorkersArgs,
+  getWorkerName,
   hasWranglerEnvironment,
   sanitizeBranchName,
   extractDeploymentUrl,
@@ -30,18 +32,6 @@ describe("sanitizeBranchName", () => {
     assert.equal(sanitizeBranchName("trailing--"), "trailing");
   });
 
-  it("truncates to 50 characters", () => {
-    const long = "a".repeat(60);
-    assert.equal(sanitizeBranchName(long).length, 50);
-  });
-
-  it("strips trailing hyphens after truncation", () => {
-    const input = "a".repeat(49) + "---extra";
-    const result = sanitizeBranchName(input);
-    assert.ok(result.length <= 50);
-    assert.ok(!result.endsWith("-"));
-  });
-
   it("handles typical branch names", () => {
     assert.equal(
       sanitizeBranchName("feature/PROJ-123-add-widget"),
@@ -50,6 +40,62 @@ describe("sanitizeBranchName", () => {
     assert.equal(
       sanitizeBranchName("dependabot/npm_and_yarn/lodash-4.17.21"),
       "dependabot-npm-and-yarn-lodash-4-17-21",
+    );
+  });
+});
+
+describe("buildPreviewAlias", () => {
+  it("fits the alias and Worker name within a DNS label", () => {
+    const workerName = "foxglove-app-storybook";
+    const alias = buildPreviewAlias("a".repeat(60), workerName);
+
+    assert.equal(`${alias}-${workerName}`.length, 63);
+    assert.match(alias, /^a+-[a-f0-9]{4}$/);
+  });
+
+  it("uses a hash to distinguish branches with the same prefix", () => {
+    const workerName = "foxglove-app-storybook";
+    const first = buildPreviewAlias(`${"a".repeat(60)}-one`, workerName);
+    const second = buildPreviewAlias(`${"a".repeat(60)}-two`, workerName);
+
+    assert.notEqual(first, second);
+  });
+
+  it("makes aliases beginning with a number valid", () => {
+    assert.equal(
+      buildPreviewAlias("123-feature", "worker"),
+      "branch-123-feature",
+    );
+  });
+
+  it("uses a stable fallback for a branch without valid characters", () => {
+    assert.match(buildPreviewAlias("___", "worker"), /^branch-[a-f0-9]{4}$/);
+  });
+
+  it("preserves the previous 50-character limit without a Worker name", () => {
+    assert.equal(buildPreviewAlias("a".repeat(60)).length, 50);
+  });
+});
+
+describe("getWorkerName", () => {
+  it("returns the top-level Worker name without an environment", () => {
+    assert.equal(getWorkerName({ name: "worker" }, ""), "worker");
+  });
+
+  it("appends the Wrangler environment to an inherited Worker name", () => {
+    assert.equal(
+      getWorkerName({ name: "worker", env: { preview: {} } }, "preview"),
+      "worker-preview",
+    );
+  });
+
+  it("uses a Worker name overridden by the Wrangler environment", () => {
+    assert.equal(
+      getWorkerName(
+        { name: "worker", env: { preview: { name: "custom-preview" } } },
+        "preview",
+      ),
+      "custom-preview",
     );
   });
 });
@@ -83,6 +129,7 @@ describe("buildWorkersArgs", () => {
         isProduction: false,
         branch: "feature/widget",
         environment: "",
+        workerName: "worker",
       }),
       ["versions", "upload", "--preview-alias", "feature-widget"],
     );
@@ -94,6 +141,7 @@ describe("buildWorkersArgs", () => {
         isProduction: false,
         branch: "feature/widget",
         environment: "preview",
+        workerName: "worker-preview",
       }),
       [
         "versions",
@@ -111,6 +159,7 @@ describe("buildWorkersArgs", () => {
       isProduction: false,
       branch: "Feature/PROJ-123",
       environment: "",
+      workerName: "worker",
     });
     assert.equal(args[3], "feature-proj-123");
   });

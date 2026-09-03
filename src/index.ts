@@ -6,6 +6,7 @@ import { Octokit } from "@octokit/rest";
 import {
   buildWorkersArgs,
   extractDeploymentUrl,
+  getWorkerName,
   hasWranglerEnvironment,
   parseJsonc,
 } from "./utils.js";
@@ -25,6 +26,7 @@ interface Config {
   isProduction: boolean;
   productionBranch: string;
   workingDirectory: string;
+  workerName: string | undefined;
   gitHubToken: string;
   deployAttempts: number;
 }
@@ -55,12 +57,11 @@ function readWranglerConfig(
   return undefined;
 }
 
-function readWranglerName(workingDirectory: string): string | undefined {
-  const config = readWranglerConfig(workingDirectory);
-  if (config && typeof config.name === "string" && config.name) {
-    return config.name;
-  }
-  return undefined;
+function readWranglerName(
+  workingDirectory: string,
+  environment = "",
+): string | undefined {
+  return getWorkerName(readWranglerConfig(workingDirectory), environment);
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +220,7 @@ async function deployWorkers(config: Config): Promise<DeployResult> {
     isProduction: config.isProduction,
     branch: config.branch,
     environment: config.environment,
+    workerName: config.workerName,
   });
 
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
@@ -435,6 +437,12 @@ async function run(): Promise<void> {
     isProduction,
     productionBranch,
     workingDirectory,
+    workerName:
+      mode === "workers"
+        ? readWranglerName(workingDirectory, effectiveEnvironment) ||
+          projectName ||
+          undefined
+        : undefined,
     gitHubToken,
     deployAttempts,
   };
@@ -475,8 +483,7 @@ async function run(): Promise<void> {
     return;
   }
 
-  const label =
-    projectName || readWranglerName(config.workingDirectory) || "workers";
+  const label = projectName || config.workerName || "workers";
 
   await core.group("Setup Wrangler", () => setupWrangler(workingDirectory));
 

@@ -131,7 +131,7 @@ This makes deployment URLs visible directly on pull requests and in the reposito
 
 ### Preview aliases (Workers)
 
-For non-production branches the action sanitizes the branch name into a URL-safe alias (lowercase, alphanumeric + hyphens, max 50 chars) and passes it to `wrangler versions upload --preview-alias`. This gives each branch its own stable `https://<alias>.<worker>.workers.dev` URL.
+For non-production branches the action sanitizes the branch name into a URL-safe alias and passes it to `wrangler versions upload --preview-alias`. The alias is shortened with a stable hash when necessary so that the alias and Worker name fit Cloudflare's 63-character DNS label limit. This gives each branch its own stable `https://<alias>-<worker>.<subdomain>.workers.dev` URL.
 
 ## Inputs
 
