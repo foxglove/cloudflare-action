@@ -12,6 +12,7 @@ export function buildWorkersArgs(opts: {
   isProduction: boolean;
   branch: string;
   environment: string;
+  previewAlias?: string;
 }): string[] {
   const args: string[] = opts.isProduction
     ? ["deploy"]
@@ -19,7 +20,7 @@ export function buildWorkersArgs(opts: {
         "versions",
         "upload",
         "--preview-alias",
-        sanitizeBranchName(opts.branch),
+        opts.previewAlias || sanitizeBranchName(opts.branch),
       ];
   if (opts.environment) {
     args.push("--env", opts.environment);

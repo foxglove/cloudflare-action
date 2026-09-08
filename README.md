@@ -131,7 +131,9 @@ This makes deployment URLs visible directly on pull requests and in the reposito
 
 ### Preview aliases (Workers)
 
-For non-production branches the action sanitizes the branch name into a URL-safe alias (lowercase, alphanumeric + hyphens, max 50 chars) and passes it to `wrangler versions upload --preview-alias`. This gives each branch its own stable `https://<alias>.<worker>.workers.dev` URL.
+For non-production branches the action sanitizes the branch name into an alias (lowercase, alphanumeric + hyphens, max 50 chars) and passes it to `wrangler versions upload --preview-alias`. The preview URL is `https://<alias>-<worker>.<account-subdomain>.workers.dev`.
+
+Branches can share an alias after sanitization or truncation. For pull request workflows, set `previewAlias: pr-${{ github.event.pull_request.number }}` to keep each PR's preview URL separate. An explicit alias is passed through unchanged: it must use lowercase letters, numbers, and hyphens, start with a letter, and fit within 63 characters together with the Worker name and separating hyphen.
 
 ## Inputs
 
@@ -148,6 +150,7 @@ For non-production branches the action sanitizes the branch name into a URL-safe
 | `deployAttempts`   | no       | `3`       | Number of deploy attempts before failing                                                                                                                                                                        |
 | `productionBranch` | no       | `main`    | Branch name that triggers a production deploy                                                                                                                                                                   |
 | `previewDeploy`    | no       | `true`    | Whether to deploy preview environments for non-production branches (`true`/`false`, any case)                                                                                                                   |
+| `previewAlias`     | no       |           | Explicit Workers preview alias; defaults to the sanitized branch name. Ignored for Pages and production deployments.                                                                                            |
 
 ## Outputs
 

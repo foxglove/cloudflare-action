@@ -36,7 +36,7 @@ LICENSE              MIT license
 | Pages   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`          |
 | Workers | `wrangler deploy`                     | `wrangler versions upload --preview-alias <alias>` |
 
-Preview aliases for Workers are derived from the branch name — lowercased, non-alphanumeric characters replaced with hyphens, truncated to 50 characters.
+Preview aliases for Workers default to the branch name — lowercased, non-alphanumeric characters replaced with hyphens, truncated to 50 characters. The optional `previewAlias` input overrides this value for Workers previews, allowing pull request workflows to use a unique alias such as `pr-123`.
 
 ### GitHub Deployments
 
