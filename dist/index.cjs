@@ -23578,7 +23578,7 @@ function buildWorkersArgs(opts) {
     "versions",
     "upload",
     "--preview-alias",
-    sanitizeBranchName(opts.branch)
+    opts.previewAlias || sanitizeBranchName(opts.branch)
   ];
   if (opts.environment) {
     args.push("--env", opts.environment);
@@ -23754,7 +23754,8 @@ async function deployWorkers(config) {
   const args = buildWorkersArgs({
     isProduction: config.isProduction,
     branch: config.branch,
-    environment: config.environment
+    environment: config.environment,
+    previewAlias: config.previewAlias
   });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {
@@ -23880,6 +23881,7 @@ async function run() {
   const deployAttempts = parseInt(getInput("deployAttempts") || "3", 10);
   const productionBranch = getInput("productionBranch") || "main";
   const previewDeploy = getBooleanInput("previewDeploy");
+  const previewAlias = getInput("previewAlias");
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
   }
@@ -23912,6 +23914,7 @@ async function run() {
     branch,
     isProduction,
     productionBranch,
+    previewAlias,
     workingDirectory,
     gitHubToken,
     deployAttempts

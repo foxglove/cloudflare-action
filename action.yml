@@ -54,6 +54,11 @@ inputs:
     description: "Whether to deploy preview environments for non-production branches (default: true)"
     required: false
     default: "true"
+  previewAlias:
+    description: >
+      Explicit alias for Workers preview deployments (for example, pr-123).
+      Defaults to the sanitized branch name. Ignored for Pages and production deployments.
+    required: false
 
 outputs:
   url:

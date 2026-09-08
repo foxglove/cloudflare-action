@@ -24,6 +24,7 @@ interface Config {
   branch: string;
   isProduction: boolean;
   productionBranch: string;
+  previewAlias: string;
   workingDirectory: string;
   gitHubToken: string;
   deployAttempts: number;
@@ -219,6 +220,7 @@ async function deployWorkers(config: Config): Promise<DeployResult> {
     isProduction: config.isProduction,
     branch: config.branch,
     environment: config.environment,
+    previewAlias: config.previewAlias,
   });
 
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
@@ -393,6 +395,7 @@ async function run(): Promise<void> {
   const deployAttempts = parseInt(core.getInput("deployAttempts") || "3", 10);
   const productionBranch = core.getInput("productionBranch") || "main";
   const previewDeploy = core.getBooleanInput("previewDeploy");
+  const previewAlias = core.getInput("previewAlias");
 
   if (mode === "pages" && !projectName) {
     throw new Error("projectName is required for Pages deployments");
@@ -434,6 +437,7 @@ async function run(): Promise<void> {
     branch,
     isProduction,
     productionBranch,
+    previewAlias,
     workingDirectory,
     gitHubToken,
     deployAttempts,

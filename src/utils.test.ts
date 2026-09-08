@@ -114,6 +114,63 @@ describe("buildWorkersArgs", () => {
     });
     assert.equal(args[3], "feature-proj-123");
   });
+
+  it("uses explicit aliases to distinguish branches with the same truncated prefix", () => {
+    const branch = "jv/VIZ-1376-conditional-background-color-for-plots";
+    const first = buildWorkersArgs({
+      isProduction: false,
+      branch,
+      environment: "preview",
+      previewAlias: "pr-18332",
+    });
+    const second = buildWorkersArgs({
+      isProduction: false,
+      branch: `${branch}-v2`,
+      environment: "preview",
+      previewAlias: "pr-18333",
+    });
+
+    assert.deepStrictEqual(first, [
+      "versions",
+      "upload",
+      "--preview-alias",
+      "pr-18332",
+      "--env",
+      "preview",
+    ]);
+    assert.deepStrictEqual(second, [
+      "versions",
+      "upload",
+      "--preview-alias",
+      "pr-18333",
+      "--env",
+      "preview",
+    ]);
+  });
+
+  it("falls back to the branch name when the preview alias input is empty", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: false,
+        branch: "feature/widget",
+        environment: "",
+        previewAlias: "",
+      }),
+      ["versions", "upload", "--preview-alias", "feature-widget"],
+    );
+  });
+
+  it("ignores the preview alias for production deployments", () => {
+    assert.deepStrictEqual(
+      buildWorkersArgs({
+        isProduction: true,
+        branch: "main",
+        environment: "",
+        previewAlias: "pr-18332",
+      }),
+      ["deploy"],
+    );
+  });
 });
 
 describe("hasWranglerEnvironment", () => {
