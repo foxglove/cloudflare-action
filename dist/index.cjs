@@ -23570,15 +23570,19 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 );
 
 // src/utils.ts
-function sanitizeBranchName(branch) {
-  return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, 50).replace(/-+$/, "");
+function sanitizeBranchName(branch, maxLength = 50) {
+  return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, maxLength).replace(/-+$/, "");
+}
+function maxAliasLength(workerName) {
+  if (!workerName) return 50;
+  return Math.max(1, 62 - workerName.length);
 }
 function buildWorkersArgs(opts) {
   const args = opts.isProduction ? ["deploy"] : [
     "versions",
     "upload",
     "--preview-alias",
-    sanitizeBranchName(opts.branch)
+    sanitizeBranchName(opts.branch, maxAliasLength(opts.workerName))
   ];
   if (opts.environment) {
     args.push("--env", opts.environment);
@@ -23754,7 +23758,8 @@ async function deployWorkers(config) {
   const args = buildWorkersArgs({
     isProduction: config.isProduction,
     branch: config.branch,
-    environment: config.environment
+    environment: config.environment,
+    workerName: readWranglerName(config.workingDirectory)
   });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {

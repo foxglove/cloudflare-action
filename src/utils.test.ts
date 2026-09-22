@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildWorkersArgs,
   hasWranglerEnvironment,
+  maxAliasLength,
   sanitizeBranchName,
   extractDeploymentUrl,
   parseJsonc,
@@ -30,9 +31,14 @@ describe("sanitizeBranchName", () => {
     assert.equal(sanitizeBranchName("trailing--"), "trailing");
   });
 
-  it("truncates to 50 characters", () => {
+  it("truncates to 50 characters by default", () => {
     const long = "a".repeat(60);
     assert.equal(sanitizeBranchName(long).length, 50);
+  });
+
+  it("truncates to a custom maxLength", () => {
+    const long = "a".repeat(60);
+    assert.equal(sanitizeBranchName(long, 20).length, 20);
   });
 
   it("strips trailing hyphens after truncation", () => {
@@ -51,6 +57,21 @@ describe("sanitizeBranchName", () => {
       sanitizeBranchName("dependabot/npm_and_yarn/lodash-4.17.21"),
       "dependabot-npm-and-yarn-lodash-4-17-21",
     );
+  });
+});
+
+describe("maxAliasLength", () => {
+  it("defaults to 50 when the worker name is unknown", () => {
+    assert.equal(maxAliasLength(undefined), 50);
+    assert.equal(maxAliasLength(""), 50);
+  });
+
+  it("leaves room for the hyphen joining alias and worker name", () => {
+    assert.equal(maxAliasLength("my-worker"), 62 - "my-worker".length);
+  });
+
+  it("clamps to a minimum of 1 for very long worker names", () => {
+    assert.equal(maxAliasLength("a".repeat(70)), 1);
   });
 });
 
@@ -113,6 +134,26 @@ describe("buildWorkersArgs", () => {
       environment: "",
     });
     assert.equal(args[3], "feature-proj-123");
+  });
+
+  it("truncates the alias based on the worker name length", () => {
+    const workerName = "a".repeat(31);
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch: "b".repeat(60),
+      environment: "",
+      workerName,
+    });
+    assert.equal(args[3]?.length, 62 - workerName.length);
+  });
+
+  it("falls back to a 50 character alias cap without a worker name", () => {
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch: "b".repeat(60),
+      environment: "",
+    });
+    assert.equal(args[3]?.length, 50);
   });
 });
 
