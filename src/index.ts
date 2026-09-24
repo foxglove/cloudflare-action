@@ -219,6 +219,7 @@ async function deployWorkers(config: Config): Promise<DeployResult> {
     isProduction: config.isProduction,
     branch: config.branch,
     environment: config.environment,
+    workerName: readWranglerName(config.workingDirectory),
   });
 
   const { stdout, stderr, exitCode } = await runWrangler(args, config);

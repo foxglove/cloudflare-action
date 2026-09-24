@@ -1,17 +1,26 @@
-export function sanitizeBranchName(branch: string): string {
+export function sanitizeBranchName(branch: string, maxLength = 50): string {
   return branch
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "-")
     .replace(/^-+/, "")
     .replace(/-+/g, "-")
-    .substring(0, 50)
+    .substring(0, maxLength)
     .replace(/-+$/, "");
+}
+
+// The alias and Worker name combined (joined by a hyphen) form a single DNS
+// label for the preview URL, which is capped at 63 characters. Leave 50
+// characters for the alias when the Worker name isn't known.
+export function maxAliasLength(workerName: string | undefined): number {
+  if (!workerName) return 50;
+  return Math.max(1, 62 - workerName.length);
 }
 
 export function buildWorkersArgs(opts: {
   isProduction: boolean;
   branch: string;
   environment: string;
+  workerName?: string;
 }): string[] {
   const args: string[] = opts.isProduction
     ? ["deploy"]
@@ -19,7 +28,7 @@ export function buildWorkersArgs(opts: {
         "versions",
         "upload",
         "--preview-alias",
-        sanitizeBranchName(opts.branch),
+        sanitizeBranchName(opts.branch, maxAliasLength(opts.workerName)),
       ];
   if (opts.environment) {
     args.push("--env", opts.environment);
