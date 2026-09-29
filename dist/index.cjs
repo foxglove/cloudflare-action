@@ -23573,16 +23573,46 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 function sanitizeBranchName(branch, maxLength = 50) {
   return branch.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+/, "").replace(/-+/g, "-").substring(0, maxLength).replace(/-+$/, "");
 }
-function maxAliasLength(workerName) {
-  if (!workerName) return 50;
-  return Math.max(1, 62 - workerName.length);
+var MAX_PREVIEW_LABEL_LENGTH = 62;
+function maxAliasLength(scriptName) {
+  if (!scriptName) return 50;
+  return Math.max(1, MAX_PREVIEW_LABEL_LENGTH - scriptName.length - 1);
+}
+function nonEmptyString(value) {
+  return typeof value === "string" && value.length > 0 ? value : void 0;
+}
+function workerScriptName(config, environment) {
+  const topLevelName = nonEmptyString(config?.name);
+  if (!environment) {
+    return topLevelName;
+  }
+  const envName = environmentScriptName(config, environment);
+  if (envName) {
+    return envName;
+  }
+  if (topLevelName) {
+    return `${topLevelName}-${environment}`;
+  }
+  return void 0;
+}
+function environmentScriptName(config, environment) {
+  if (!config || typeof config.env !== "object" || config.env === null) {
+    return void 0;
+  }
+  const environments = config.env;
+  const block = environments[environment];
+  if (typeof block !== "object" || block === null) {
+    return void 0;
+  }
+  return nonEmptyString(block.name);
 }
 function buildWorkersArgs(opts) {
+  const scriptName = workerScriptName(opts.wranglerConfig, opts.environment);
   const args = opts.isProduction ? ["deploy"] : [
     "versions",
     "upload",
     "--preview-alias",
-    sanitizeBranchName(opts.branch, maxAliasLength(opts.workerName))
+    sanitizeBranchName(opts.branch, maxAliasLength(scriptName))
   ];
   if (opts.environment) {
     args.push("--env", opts.environment);
@@ -23759,7 +23789,7 @@ async function deployWorkers(config) {
     isProduction: config.isProduction,
     branch: config.branch,
     environment: config.environment,
-    workerName: readWranglerName(config.workingDirectory)
+    wranglerConfig: readWranglerConfig(config.workingDirectory)
   });
   const { stdout, stderr, exitCode } = await runWrangler(args, config);
   if (exitCode !== 0) {

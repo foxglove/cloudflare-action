@@ -36,7 +36,7 @@ LICENSE              MIT license
 | Pages   | `wrangler pages deploy --branch main` | `wrangler pages deploy --branch <branch>`          |
 | Workers | `wrangler deploy`                     | `wrangler versions upload --preview-alias <alias>` |
 
-Preview aliases for Workers are derived from the branch name — lowercased, non-alphanumeric characters replaced with hyphens, truncated to 50 characters.
+Preview aliases for Workers are derived from the branch name — lowercased, non-alphanumeric characters replaced with hyphens. The alias is truncated so `<alias>-<script>` is at most 62 characters. The script name is the one Wrangler uploads (`env.<environment>.name`, or `<top-level name>-<environment>` when that field is unset). Unknown script names keep a 50-character alias cap.
 
 ### GitHub Deployments
 

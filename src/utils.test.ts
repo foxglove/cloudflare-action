@@ -6,6 +6,7 @@ import {
   hasWranglerEnvironment,
   maxAliasLength,
   sanitizeBranchName,
+  workerScriptName,
   extractDeploymentUrl,
   parseJsonc,
 } from "./utils.ts";
@@ -66,12 +67,65 @@ describe("maxAliasLength", () => {
     assert.equal(maxAliasLength(""), 50);
   });
 
-  it("leaves room for the hyphen joining alias and worker name", () => {
-    assert.equal(maxAliasLength("my-worker"), 62 - "my-worker".length);
+  it("keeps alias, hyphen, and script name at 62 characters", () => {
+    const scriptName = "my-worker";
+    const aliasLength = maxAliasLength(scriptName);
+    assert.equal(aliasLength, 62 - scriptName.length - 1);
+    assert.equal(aliasLength + 1 + scriptName.length, 62);
   });
 
   it("clamps to a minimum of 1 for very long worker names", () => {
     assert.equal(maxAliasLength("a".repeat(70)), 1);
+  });
+});
+
+describe("workerScriptName", () => {
+  it("uses the top-level name when no environment is set", () => {
+    assert.equal(
+      workerScriptName({ name: "my-example-worker" }, ""),
+      "my-example-worker",
+    );
+  });
+
+  it("uses env.<environment>.name when that name is longer than the top-level name", () => {
+    const topLevelName = "my-example-worker";
+    const envName = "my-example-worker-staging";
+    assert.ok(envName.length > topLevelName.length);
+    assert.equal(
+      workerScriptName(
+        {
+          name: topLevelName,
+          env: { staging: { name: envName } },
+        },
+        "staging",
+      ),
+      envName,
+    );
+  });
+
+  it("appends the environment when the env block does not set name", () => {
+    assert.equal(
+      workerScriptName(
+        {
+          name: "my-example-worker",
+          env: { staging: { vars: { FOO: "bar" } } },
+        },
+        "staging",
+      ),
+      "my-example-worker-staging",
+    );
+  });
+
+  it("appends the environment when the env block is missing", () => {
+    assert.equal(
+      workerScriptName({ name: "my-example-worker" }, "staging"),
+      "my-example-worker-staging",
+    );
+  });
+
+  it("returns undefined when no name can be determined", () => {
+    assert.equal(workerScriptName(undefined, "staging"), undefined);
+    assert.equal(workerScriptName({}, ""), undefined);
   });
 });
 
@@ -136,15 +190,63 @@ describe("buildWorkersArgs", () => {
     assert.equal(args[3], "feature-proj-123");
   });
 
-  it("truncates the alias based on the worker name length", () => {
-    const workerName = "a".repeat(31);
+  it("keeps the preview label within 62 characters", () => {
+    const scriptName = "a".repeat(31);
     const args = buildWorkersArgs({
       isProduction: false,
       branch: "b".repeat(60),
       environment: "",
-      workerName,
+      wranglerConfig: { name: scriptName },
     });
-    assert.equal(args[3]?.length, 62 - workerName.length);
+    const alias = args[3];
+    assert.ok(alias);
+    assert.equal(alias.length, 62 - scriptName.length - 1);
+    assert.ok(`${alias}-${scriptName}`.length <= 62);
+  });
+
+  it("measures an env name that is longer than the top-level name", () => {
+    const topLevelName = "short";
+    const envName = "my-example-worker-staging";
+    assert.ok(envName.length > topLevelName.length);
+    const branch = "b".repeat(80);
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch,
+      environment: "staging",
+      wranglerConfig: {
+        name: topLevelName,
+        env: { staging: { name: envName } },
+      },
+    });
+    const alias = args[3];
+    assert.ok(alias);
+    assert.equal(alias.length, maxAliasLength(envName));
+    assert.ok(alias.length < maxAliasLength(topLevelName));
+    assert.ok(`${alias}-${envName}`.length <= 62);
+    const measuredAsTopLevel = sanitizeBranchName(
+      branch,
+      maxAliasLength(topLevelName),
+    );
+    assert.ok(`${measuredAsTopLevel}-${envName}`.length > 62);
+  });
+
+  it("keeps the label at 62 for an env-suffixed script name", () => {
+    const topLevelName = "my-example-worker";
+    const scriptName = "my-example-worker-staging";
+    const branch = "feature/add-dual-environment-deployment-support";
+    const args = buildWorkersArgs({
+      isProduction: false,
+      branch,
+      environment: "staging",
+      wranglerConfig: { name: topLevelName },
+    });
+    const alias = args[3];
+    assert.ok(alias);
+    assert.notEqual(
+      alias,
+      sanitizeBranchName(branch, 62 - topLevelName.length),
+    );
+    assert.equal(`${alias}-${scriptName}`.length, 62);
   });
 
   it("falls back to a 50 character alias cap without a worker name", () => {
