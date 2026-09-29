@@ -133,7 +133,15 @@ This makes deployment URLs visible directly on pull requests and in the reposito
 
 For non-production branches the action sanitizes the branch name into a URL-safe alias (lowercase, alphanumeric + hyphens) and passes it to `wrangler versions upload --preview-alias`. This gives each branch its own stable `https://<alias>-<worker>.workers.dev` URL.
 
-The alias and Worker name combined (joined by a hyphen) form a single DNS label, which Cloudflare caps at 63 characters. The action truncates the alias to `62 - <worker name length>` characters (read from `wrangler.jsonc`/`wrangler.json`) to leave room for the Worker name, falling back to 50 characters when the Worker name can't be determined.
+The preview label is `<alias>-<script>`. Cloudflare error 10021 requires that label to total less than 63 characters, so the action keeps it at 62 or fewer. The alias is truncated to `61 - <script name length>` (`62` minus the script name and the joining hyphen).
+
+The script name is the one Wrangler uploads, read from `wrangler.jsonc` / `wrangler.json`:
+
+- no `--env`: top-level `name`
+- `--env <environment>` with `env.<environment>.name` set: that name
+- `--env <environment>` otherwise: `<top-level name>-<environment>`
+
+When the script name can't be determined, the alias falls back to a 50-character cap.
 
 ## Inputs
 
